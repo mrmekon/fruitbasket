@@ -1,0 +1,24 @@
+[package]
+name = "fruitbasket"
+version = "0.1.0"
+authors = ["Trevor Bentley <mrmekon@gmail.com>"]
+
+[features]
+logging = ["log", "log4rs"]
+
+[dependencies]
+objc-foundation = "0.1.1"
+objc_id = "0.1"
+
+log = {version = "0.3", optional = true }
+[dependencies.log4rs]
+version = "0.6"
+optional = true
+features = ["rolling_file_appender"]
+
+[dev-dependencies]
+log = "0.3"
+
+[dependencies.objc]
+version = "0.2"
+features = ["exception"]
