@@ -1,5 +1,6 @@
 extern crate fruitbasket;
 use fruitbasket::Trampoline;
+use fruitbasket::InstallDir;
 
 #[macro_use]
 extern crate log;
@@ -16,7 +17,7 @@ fn main() {
         .plist_keys(&vec![
             ("LSMinimumSystemVersion", "10.12.0"),
         ])
-        .build();
+        .build(InstallDir::Temp);
 
     // App is guaranteed to be running in a bundle now.
     // Give it a bit of time for the launching process to quit, to prove that

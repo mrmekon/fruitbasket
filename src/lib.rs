@@ -36,6 +36,7 @@
 use std::thread;
 use std::time::Duration;
 use std::path::Path;
+use std::path::PathBuf;
 use std::io::Write;
 use std::error::Error;
 use std::cell::Cell;
@@ -184,6 +185,18 @@ impl From<std::io::Error> for FruitError {
     }
 }
 
+/// Options for where to save generated app bundle
+pub enum InstallDir {
+    /// Store in a system-defined temporary directory
+    Temp,
+    /// Store in the system-wide Application directory (all users)
+    SystemApplications,
+    /// Store in the user-specific Application directory (current user)
+    UserApplications,
+    /// Store in a custom directory, specified as a String
+    Custom(String),
+}
+
 impl Trampoline {
     /// Creates a new Trampoline builder to build a Mac app bundle
     ///
@@ -322,6 +335,10 @@ impl Trampoline {
     /// does not Drop your Rust allocations.  This should always be called as
     /// early as possible in your program, before any allocations or locking.
     ///
+    /// # Arguments
+    ///
+    /// `dir` - Directory to create app bundle in (if one is created)
+    ///
     /// # Returns
     ///
     /// * Result<_, FruitError> if not running in a bundle and a new bundle
@@ -333,8 +350,8 @@ impl Trampoline {
     /// * Result<FruitApp, _> if running in a Mac bundle (either when launched
     ///   from one initially, or successfully re-launched by `Trampoline`)
     ///   containing the initialized app environment,
-    pub fn build(&mut self) -> Result<FruitApp, FruitError> {
-        self.self_bundle()?; // terminates this process if not bundled
+    pub fn build(&mut self, dir: InstallDir) -> Result<FruitApp, FruitError> {
+        self.self_bundle(dir)?; // terminates this process if not bundled
         info!("Process is bundled.  Continuing.");
         Ok(FruitApp::new())
     }
@@ -347,15 +364,20 @@ impl Trampoline {
             ident != nil
         }
     }
-    fn self_bundle(&self) -> Result<(), FruitError> {
+    fn self_bundle(&self, dir: InstallDir) -> Result<(), FruitError> {
         unsafe {
             if Self::is_bundled() {
                 return Ok(());
             }
             info!("Process not bundled.  Self-bundling and relaunching.");
 
-            let temp_dir = std::env::temp_dir();
-            let bundle_dir = Path::new(&temp_dir).join(&format!("{}.app", self.name));
+            let install_dir: PathBuf = match dir {
+                InstallDir::Temp => std::env::temp_dir(),
+                InstallDir::SystemApplications => PathBuf::from("/Applications/"),
+                InstallDir::UserApplications => std::env::home_dir().unwrap().join("Applications/"),
+                InstallDir::Custom(dir) => PathBuf::from(dir),
+            };
+            let bundle_dir = Path::new(&install_dir).join(&format!("{}.app", self.name));
             let contents_dir = Path::new(&bundle_dir).join("Contents");
             let macos_dir = contents_dir.clone().join("MacOS");
             let resources_dir = contents_dir.clone().join("Resources");
