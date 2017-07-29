@@ -3,6 +3,12 @@ name = "fruitbasket"
 version = "0.1.0"
 authors = ["Trevor Bentley <mrmekon@gmail.com>"]
 description = "Framework for running Rust programs in a Mac 'app bundle' environment."
+keywords = ["mac", "osx", "bundle", "cocoa", "appkit"]
+categories = ["api-bindings"]
+homepage = "https://github.com/mrmekon/fruitbasket"
+repository = "https://github.com/mrmekon/fruitbasket"
+documentation = "https://mrmekon.github.io/fruitbasket/fruitbasket/"
+license = "Apache-2.0"
 
 [features]
 logging = ["log", "log4rs"]
@@ -24,3 +30,11 @@ log = "0.3"
 [dependencies.objc]
 version = "0.2"
 features = ["exception"]
+
+[package.metadata.release]
+sign-commit = false
+upload-doc = true
+pre-release-commit-message = "Release {{version}}"
+dev-version-ext = "rc"
+tag-message = "Release {{version}}"
+doc-commit-message = "Release {{version}}"
