@@ -4,12 +4,17 @@ use fruitbasket::Trampoline;
 use fruitbasket::InstallDir;
 use fruitbasket::RunPeriod;
 use std::time::Duration;
+use std::path::PathBuf;
 
 #[macro_use]
 extern crate log;
 
 fn main() {
     let _ = fruitbasket::create_logger(".fruitbasket.log", fruitbasket::LogDir::Home, 5, 2).unwrap();
+
+    // Find the icon file from the Cargo project dir
+    let icon = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("examples").join("icon.png");
 
     // Re-launch self in an app bundle if not already running from one.
     info!("Executable must run from App bundle.  Let's try:");
@@ -21,6 +26,7 @@ fn main() {
             ("LSMinimumSystemVersion", "10.12.0"),
             ("LSBackgroundOnly", "1"),
         ])
+        .resource(icon.to_str().unwrap())
         .build(InstallDir::Temp).unwrap();
 
     // App is guaranteed to be running in a bundle now!
@@ -51,6 +57,10 @@ fn main() {
     info!("Spawned process running!");
     app.run(RunPeriod::Forever);
     info!("Run loop stopped from other thread.");
+
+    // Find the icon we stored in the bundle
+    let icon = fruitbasket::FruitApp::bundled_resource_path("icon", "png");
+    info!("Bundled icon: {}", icon.unwrap_or("MISSING!".to_string()));
 
     // Cleanly terminate
     fruitbasket::FruitApp::terminate(0);

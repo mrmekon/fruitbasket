@@ -33,6 +33,7 @@
 //! [FruitApp](struct.FruitApp.html) right after your Rust application starts.
 //! If uncertain, use a `Trampoline`.  You can hit very strange behavior when running
 //! Cocoa apps outside of an app bundle.
+#![deny(missing_docs)]
 use std::thread;
 use std::time::Duration;
 use std::path::Path;
@@ -156,6 +157,7 @@ pub struct Trampoline {
     icon: String,
     version: String,
     keys: Vec<(String,String)>,
+    resources: Vec<String>,
 }
 
 /// Options for how long to run the event loop on each call
@@ -352,6 +354,35 @@ impl Trampoline {
         }
         self
     }
+    /// Add file to Resources directory of app bundle
+    ///
+    /// Specify full path to a file to copy into the Resources directory of the
+    /// generated app bundle.  Resources can be any sort of file, and are copied
+    /// around with the app when it is moved.  The app can easily access any
+    /// file in its resources at runtime, even when running in sandboxed
+    /// environments.
+    ///
+    /// The most common bundled resources are icons.
+    ///
+    /// # Arguments
+    ///
+    /// `file` - Full path to file to include
+    pub fn resource(&mut self, file: &str) -> &mut Self {
+        self.resources.push(file.to_string());
+        self
+    }
+
+    /// Add multiple files to Resources directory of app bundle
+    ///
+    /// See documentation of `resource()`.  This function does the same, but
+    /// allows specifying more than one resource at a time.
+    pub fn resources(&mut self, files: &Vec<&str>) -> &mut Self{
+        for file in files {
+            self.resources.push(file.to_string());
+        }
+        self
+    }
+
     /// Finishes building and launching the app bundle
     ///
     /// This builds and executes the "trampoline", meaning it is a highly
@@ -420,10 +451,19 @@ impl Trampoline {
             let src_exe = std::env::current_exe()?;
             let dst_exe = macos_dir.clone().join(&self.exe);
 
+            std::fs::remove_dir_all(&bundle_dir)?;
             std::fs::create_dir_all(&macos_dir)?;
             std::fs::create_dir_all(&resources_dir)?;
             info!("Copy {:?} to {:?}", src_exe, dst_exe);
             std::fs::copy(src_exe, dst_exe)?;
+
+            for file in &self.resources {
+                let file = Path::new(file);
+                if let Some(filename) = file.file_name() {
+                    let dst = resources_dir.clone().join(filename);
+                    std::fs::copy(file, dst)?;
+                }
+            }
 
             // Write Info.plist
             let mut f = std::fs::File::create(&plist)?;
@@ -632,6 +672,49 @@ impl FruitApp {
     pub fn stopper(&self) -> FruitStopper {
         FruitStopper {
             tx: self.tx.clone()
+        }
+    }
+
+    /// Locate a resource in the executing Mac App bundle
+    ///
+    /// Looks for a resource by name and extension in the bundled Resources
+    /// directory.
+    ///
+    /// # Arguments
+    ///
+    /// `name` - Name of the file to find, without the extension
+    /// `extension` - Extension of the file to find.  Can be an empty string for
+    /// files with no extension.
+    ///
+    /// # Returns
+    ///
+    /// The full, absolute path to the resource, or None if not found.
+    pub fn bundled_resource_path(name: &str, extension: &str) -> Option<String> {
+        unsafe {
+            let cls = Class::get("NSBundle").unwrap();
+            let bundle: *mut Object = msg_send![cls, mainBundle];
+            let cls = Class::get("NSString").unwrap();
+            let objc_str: *mut Object = msg_send![cls, alloc];
+            let objc_name: *mut Object = msg_send![objc_str,
+                                                  initWithBytes:name.as_ptr()
+                                                  length:name.len()
+                                                  encoding: 4]; // UTF8_ENCODING
+            let objc_str: *mut Object = msg_send![cls, alloc];
+            let objc_ext: *mut Object = msg_send![objc_str,
+                                                  initWithBytes:extension.as_ptr()
+                                                  length:extension.len()
+                                                  encoding: 4]; // UTF8_ENCODING
+            let ini: *mut Object = msg_send![bundle,
+                                             pathForResource:objc_name
+                                             ofType:objc_ext];
+            let _ = msg_send![objc_name, release];
+            let _ = msg_send![objc_ext, release];
+            let cstr: *const i8 = msg_send![ini, UTF8String];
+            if cstr != std::ptr::null() {
+                let rstr = std::ffi::CStr::from_ptr(cstr).to_string_lossy().into_owned();
+                return Some(rstr);
+            }
+            None
         }
     }
 }
