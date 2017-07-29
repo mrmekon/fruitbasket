@@ -2,6 +2,7 @@
 name = "fruitbasket"
 version = "0.1.0"
 authors = ["Trevor Bentley <mrmekon@gmail.com>"]
+description = "Framework for running Rust programs in a Mac 'app bundle' environment."
 
 [features]
 logging = ["log", "log4rs"]
@@ -9,6 +10,7 @@ logging = ["log", "log4rs"]
 [dependencies]
 objc-foundation = "0.1.1"
 objc_id = "0.1"
+time = "0.1"
 
 log = {version = "0.3", optional = true }
 [dependencies.log4rs]
