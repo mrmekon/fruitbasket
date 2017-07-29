@@ -40,6 +40,9 @@ use std::path::PathBuf;
 use std::io::Write;
 use std::error::Error;
 use std::cell::Cell;
+use std::sync::mpsc::channel;
+use std::sync::mpsc::Receiver;
+use std::sync::mpsc::Sender;
 
 extern crate time;
 
@@ -115,11 +118,12 @@ pub const FORBIDDEN_PLIST: &'static [&'static str] = & [
 /// struct's builder instead.
 ///
 pub struct FruitApp {
-    app: *mut objc::runtime::Object,
+    app: *mut Object,
     pool: Cell<*mut Object>,
     run_count: Cell<u64>,
     run_mode: *mut Object,
-    run_date: *mut Object,
+    tx: Sender<()>,
+    rx: Receiver<()>,
 }
 
 /// API to move the executable into a Mac app bundle and relaunch (if necessary)
@@ -193,6 +197,26 @@ impl std::ops::Deref for FruitError {
 impl From<std::io::Error> for FruitError {
     fn from(error: std::io::Error) -> Self {
         FruitError::new(error.description())
+    }
+}
+
+/// An opaque, thread-safe object that can interrupt the run loop.
+///
+/// An object that is safe to pass across thread boundaries (i.e. it implements
+/// Send and Sync), and can be used to interrupt and stop the run loop, even
+/// when running in 'Forever' mode.  It can be Cloned infinite times and used
+/// from any thread.
+#[derive(Clone)]
+pub struct FruitStopper {
+    tx: Sender<()>,
+}
+impl FruitStopper {
+    /// Stop the run loop on the `FruitApp` instance that created this object
+    ///
+    /// This is equivalent to passing the object to `FruitApp::stop()`.  See it
+    /// for more documentation.
+    pub fn stop(&self) {
+        let _ = self.tx.send(());
     }
 }
 
@@ -461,6 +485,7 @@ impl FruitApp {
     ///
     /// A newly allocated FruitApp for managing the app
     pub fn new() -> FruitApp {
+        let (tx,rx) = channel::<()>();
         unsafe {
             let cls = Class::get("NSApplication").unwrap();
             let app: *mut Object = msg_send![cls, sharedApplication];
@@ -474,13 +499,13 @@ impl FruitApp {
                                                   initWithBytes:rust_runmode.as_ptr()
                                                   length:rust_runmode.len()
                                                   encoding: 4]; // UTF8_ENCODING
-            let date_cls = Class::get("NSDate").unwrap();
             FruitApp {
                 app: app,
                 pool: Cell::new(pool),
                 run_count: Cell::new(0),
                 run_mode: run_mode,
-                run_date: msg_send![date_cls, distantPast],
+                tx: tx,
+                rx: rx,
             }
         }
     }
@@ -497,6 +522,46 @@ impl FruitApp {
         }
     }
 
+    /// Cleanly terminate the application
+    ///
+    /// Terminates a running application and its event loop, and terminates the
+    /// process.  This function does not return, so perform any required cleanup
+    /// of your Rust application before calling it.
+    ///
+    /// You should call this at the end of your program instead of simply exiting
+    /// from `main()` to ensure that OS X knows your application has quit cleanly
+    /// and can immediately inform any subsystems that are monitoring it.
+    ///
+    /// This can be called from any thread.
+    ///
+    /// # Arguments
+    ///
+    /// `exit_code` - Application exit code. '0' is success.
+    pub fn terminate(exit_code: i32) {
+        unsafe {
+            let cls = objc::runtime::Class::get("NSApplication").unwrap();
+            let app: *mut objc::runtime::Object = msg_send![cls, sharedApplication];
+            let _ = msg_send![app, terminate: exit_code];
+        }
+    }
+
+    /// Stop the running app run loop
+    ///
+    /// If the run loop is running (`run()`), this stops it after the next event
+    /// finishes processing.  It does not quit or terminate anything, and the
+    /// run loop can be continued later.  This can be used from callbacks to
+    /// interrupt a run loop running in 'Forever' mode and return control back
+    /// to Rust's main thread.
+    ///
+    /// This can be called from any thread.
+    ///
+    /// # Arguments
+    ///
+    /// `stopper` - A thread-safe `FruitStopper` object returned by `stopper()`
+    pub fn stop(stopper: &FruitStopper) {
+        stopper.stop();
+    }
+
     /// Runs the main application event loop
     ///
     /// The application's event loop must be run frequently to dispatch all
@@ -511,6 +576,9 @@ impl FruitApp {
     pub fn run(&mut self, period: RunPeriod) {
         let start = time::now_utc().to_timespec();
         loop {
+            if self.rx.try_recv().is_ok() {
+                break;
+            }
             unsafe {
                 let run_count = self.run_count.get();
                 // Create a new release pool every once in a while, draining the old one
@@ -525,8 +593,11 @@ impl FruitApp {
                     self.pool.set(pool);
                 }
                 let mode = self.run_mode;
-                let event: *mut Object = msg_send![self.app, nextEventMatchingMask: -1
-                                                  untilDate: self.run_date inMode:mode dequeue: 1];
+                let event: *mut Object = msg_send![self.app,
+                                                   nextEventMatchingMask: -1
+                                                   untilDate: nil
+                                                   inMode: mode
+                                                   dequeue: 1];
                 let _ = msg_send![self.app, sendEvent: event];
                 let _ = msg_send![self.app, updateWindows];
                 self.run_count.set(run_count + 1);
@@ -541,6 +612,26 @@ impl FruitApp {
                     break;
                 }
             }
+        }
+    }
+    /// Create a thread-safe object that can interrupt the run loop
+    ///
+    /// Returns an object that is safe to pass across thread boundaries (i.e.
+    /// it implements Send and Sync), and can be used to interrupt and stop
+    /// the run loop, even when running in 'Forever' mode.
+    ///
+    /// This makes it convenient to implement the common strategy of blocking
+    /// the main loop forever on the Apple run loop, until some other UI or
+    /// processing thread interrupts it and lets the main thread handle cleanup
+    /// and graceful shutdown.
+    ///
+    /// # Returns
+    ///
+    /// A newly allocated object that can be passed across thread boundaries and
+    /// cloned infinite times..
+    pub fn stopper(&self) -> FruitStopper {
+        FruitStopper {
+            tx: self.tx.clone()
         }
     }
 }
