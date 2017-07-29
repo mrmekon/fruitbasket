@@ -1,4 +1,4 @@
-# fruitbasket - Framework for running Rust programs in a Mac 'app bundle' environment.
+# fruitbasket - Mac app Framework for Rust
 
 [![Build Status](https://travis-ci.org/mrmekon/fruitbasket.svg?branch=master)](https://travis-ci.org/mrmekon/fruitbasket)
 [![Crates.io Version](https://img.shields.io/crates/v/fruitbasket.svg)](https://crates.io/crates/fruitbasket)
