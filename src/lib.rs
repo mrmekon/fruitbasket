@@ -443,15 +443,18 @@ impl Trampoline {
                 InstallDir::UserApplications => std::env::home_dir().unwrap().join("Applications/"),
                 InstallDir::Custom(dir) => PathBuf::from(dir),
             };
+            info!("Install dir: {:?}", install_dir);
             let bundle_dir = Path::new(&install_dir).join(&format!("{}.app", self.name));
+            info!("Bundle dir: {:?}", bundle_dir);
             let contents_dir = Path::new(&bundle_dir).join("Contents");
             let macos_dir = contents_dir.clone().join("MacOS");
             let resources_dir = contents_dir.clone().join("Resources");
             let plist = contents_dir.clone().join("Info.plist");
             let src_exe = std::env::current_exe()?;
+            info!("Current exe: {:?}", src_exe);
             let dst_exe = macos_dir.clone().join(&self.exe);
 
-            std::fs::remove_dir_all(&bundle_dir)?;
+            let _ = std::fs::remove_dir_all(&bundle_dir); // ignore errors
             std::fs::create_dir_all(&macos_dir)?;
             std::fs::create_dir_all(&resources_dir)?;
             info!("Copy {:?} to {:?}", src_exe, dst_exe);
@@ -683,6 +686,7 @@ impl FruitApp {
     /// # Arguments
     ///
     /// `name` - Name of the file to find, without the extension
+    ///
     /// `extension` - Extension of the file to find.  Can be an empty string for
     /// files with no extension.
     ///
