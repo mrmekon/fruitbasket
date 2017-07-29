@@ -382,16 +382,16 @@ impl Trampoline {
             let macos_dir = contents_dir.clone().join("MacOS");
             let resources_dir = contents_dir.clone().join("Resources");
             let plist = contents_dir.clone().join("Info.plist");
-            let src_exe = std::env::current_exe().unwrap();
+            let src_exe = std::env::current_exe()?;
             let dst_exe = macos_dir.clone().join(&self.exe);
 
-            std::fs::create_dir_all(&macos_dir).unwrap();
-            std::fs::create_dir_all(&resources_dir).unwrap();
+            std::fs::create_dir_all(&macos_dir)?;
+            std::fs::create_dir_all(&resources_dir)?;
             info!("Copy {:?} to {:?}", src_exe, dst_exe);
-            std::fs::copy(src_exe, dst_exe).unwrap();
+            std::fs::copy(src_exe, dst_exe)?;
 
             // Write Info.plist
-            let mut f = std::fs::File::create(&plist).unwrap();
+            let mut f = std::fs::File::create(&plist)?;
 
             // Mandatory fields
             write!(&mut f, "{{\n")?;
