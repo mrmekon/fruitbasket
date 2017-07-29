@@ -806,8 +806,10 @@ pub fn create_logger(filename: &str,
                 .build("app::requests", LogLevelFilter::Info))
         .build(Root::builder().appender("stdout").appender("requests").build(LogLevelFilter::Info))
         .unwrap();
-    let _ = log4rs::init_config(config).unwrap();
-    Ok(log_path)
+    match log4rs::init_config(config) {
+        Ok(_) => Ok(log_path),
+        Err(e) => Err(e.description().to_string()),
+    }
 }
 /// Enable logging to rolling log files with Rust `log` library
 ///
