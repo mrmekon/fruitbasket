@@ -441,7 +441,7 @@ impl Trampoline {
                 InstallDir::Temp => std::env::temp_dir(),
                 InstallDir::SystemApplications => PathBuf::from("/Applications/"),
                 InstallDir::UserApplications => std::env::home_dir().unwrap().join("Applications/"),
-                InstallDir::Custom(dir) => PathBuf::from(dir),
+                InstallDir::Custom(dir) => std::fs::canonicalize(PathBuf::from(dir))?,
             };
             info!("Install dir: {:?}", install_dir);
             let bundle_dir = Path::new(&install_dir).join(&format!("{}.app", self.name));
