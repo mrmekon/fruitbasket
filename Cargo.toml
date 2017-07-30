@@ -1,6 +1,6 @@
 [package]
 name = "fruitbasket"
-version = "0.4.0"
+version = "0.4.1-rc"
 authors = ["Trevor Bentley <mrmekon@gmail.com>"]
 description = "Framework for running Rust programs in a Mac 'app bundle' environment."
 keywords = ["mac", "osx", "bundle", "cocoa", "appkit"]
