@@ -12,6 +12,7 @@ license = "Apache-2.0"
 
 [features]
 logging = ["log", "log4rs"]
+dummy = []
 
 [dependencies]
 objc-foundation = "0.1.1"
