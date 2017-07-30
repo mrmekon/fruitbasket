@@ -12,13 +12,12 @@ license = "Apache-2.0"
 
 [features]
 logging = ["log", "log4rs"]
+dummy = []
 
 [dependencies]
-objc-foundation = "0.1.1"
-objc_id = "0.1"
 time = "0.1"
-
 log = {version = "0.3", optional = true }
+
 [dependencies.log4rs]
 version = "0.6"
 optional = true
@@ -27,7 +26,11 @@ features = ["rolling_file_appender"]
 [dev-dependencies]
 log = "0.3"
 
-[dependencies.objc]
+[target."cfg(target_os = \"macos\")".dependencies]
+objc-foundation = "0.1.1"
+objc_id = "0.1"
+
+[target."cfg(target_os = \"macos\")".dependencies.objc]
 version = "0.2"
 features = ["exception"]
 
