@@ -1,8 +1,10 @@
 extern crate fruitbasket;
 use fruitbasket::ActivationPolicy;
 use fruitbasket::Trampoline;
+use fruitbasket::FruitApp;
 use fruitbasket::InstallDir;
 use fruitbasket::RunPeriod;
+use fruitbasket::FruitError;
 use std::time::Duration;
 use std::path::PathBuf;
 
@@ -18,7 +20,7 @@ fn main() {
 
     // Re-launch self in an app bundle if not already running from one.
     info!("Executable must run from App bundle.  Let's try:");
-    let mut app = Trampoline::new("fruitbasket", "fruitbasket", "com.trevorbentley.fruitbasket")
+    let mut app = match Trampoline::new("fruitbasket", "fruitbasket", "com.trevorbentley.fruitbasket")
         .version("2.1.3")
         .icon("fruitbasket.icns")
         .plist_key("CFBundleSpokenName","\"fruit basket\"")
@@ -27,7 +29,22 @@ fn main() {
             ("LSBackgroundOnly", "1"),
         ])
         .resource(icon.to_str().unwrap())
-        .build(InstallDir::Temp).unwrap();
+        .build(InstallDir::Temp) {
+            Err(FruitError::UnsupportedPlatform(_)) => {
+                info!("This is not a Mac.  App bundling is not supported.");
+                info!("It is still safe to use FruitApp::new(), though the dummy app will do nothing.");
+                FruitApp::new()
+            },
+            Err(FruitError::IOError(e)) => {
+                info!("IO error! {}", e);
+                std::process::exit(1);
+            },
+            Err(FruitError::GeneralError(e)) => {
+                info!("General error! {}", e);
+                std::process::exit(1);
+            },
+            Ok(app) => app,
+        };
 
     // App is guaranteed to be running in a bundle now!
 
