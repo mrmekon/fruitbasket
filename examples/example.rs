@@ -43,7 +43,7 @@ fn main() {
     // Give it a bit of time for the launching process to quit, to prove that
     // the bundled process is not a dependent child of the un-bundled process.
     info!("Spawned process started.  Sleeping for a bit...");
-    app.run(RunPeriod::Time(Duration::from_secs(1)));
+    let _ = app.run(RunPeriod::Time(Duration::from_secs(1)));
 
     // Demonstrate stopping an infinite run loop from another thread.
     let stopper = app.stopper();
@@ -55,7 +55,7 @@ fn main() {
 
     // Run 'forever', until the other thread interrupts.
     info!("Spawned process running!");
-    app.run(RunPeriod::Forever);
+    let _ = app.run(RunPeriod::Forever);
     info!("Run loop stopped from other thread.");
 
     // Find the icon we stored in the bundle

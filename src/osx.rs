@@ -359,6 +359,7 @@ impl Trampoline {
                 let file = Path::new(file);
                 if let Some(filename) = file.file_name() {
                     let dst = resources_dir.clone().join(filename);
+                    info!("Copy {:?} to {:?}", file, dst);
                     std::fs::copy(file, dst)?;
                 }
             }
@@ -511,14 +512,21 @@ impl FruitApp {
     /// # Arguments
     ///
     /// `period` - How long to run the event loop before returning
-    pub fn run(&mut self, period: RunPeriod) {
+    ///
+    /// # Returns
+    ///
+    /// Ok on natural end, Err if stopped by a Stopper.
+    pub fn run(&mut self, period: RunPeriod) -> Result<(),()>{
         let start = time::now_utc().to_timespec();
         loop {
             if self.rx.try_recv().is_ok() {
-                break;
+                return Err(());
             }
             unsafe {
                 let run_count = self.run_count.get();
+                if run_count == 0 {
+                    let _ = msg_send![self.app, finishLaunching];
+                }
                 // Create a new release pool every once in a while, draining the old one
                 if run_count % 100 == 0 {
                     let old_pool = self.pool.get();
@@ -551,6 +559,7 @@ impl FruitApp {
                 }
             }
         }
+        return Ok(());
     }
     /// Create a thread-safe object that can interrupt the run loop
     ///
