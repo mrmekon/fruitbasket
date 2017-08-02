@@ -38,7 +38,10 @@
 use std::error::Error;
 use std::time::Duration;
 use std::sync::mpsc::Sender;
+
+#[cfg(any(not(target_os = "macos"), feature="dummy"))]
 use std::sync::mpsc::Receiver;
+#[cfg(any(not(target_os = "macos"), feature="dummy"))]
 use std::thread;
 
 extern crate time;
