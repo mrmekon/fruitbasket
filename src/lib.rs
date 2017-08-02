@@ -398,5 +398,5 @@ pub fn create_logger(_filename: &str,
                      _dir: LogDir,
                      _max_size_mb: u32,
                      _backup_count: u32) -> Result<String, FruitError> {
-    Err(FruitError::new("Must recompile with 'logging' feature to use logger."))
+    Err(FruitError::GeneralError("Must recompile with 'logging' feature to use logger.".to_string()))
 }
