@@ -323,7 +323,7 @@ pub fn create_logger(filename: &str,
                      dir: LogDir,
                      max_size_mb: u32,
                      backup_count: u32) -> Result<String, String> {
-    use log::LogLevelFilter;
+    use log::LevelFilter;
     use self::log4rs::append::console::ConsoleAppender;
     use self::log4rs::append::rolling_file::RollingFileAppender;
     use self::log4rs::append::rolling_file::policy::compound::CompoundPolicy;
@@ -351,12 +351,12 @@ pub fn create_logger(filename: &str,
     let config = Config::builder()
         .appender(Appender::builder().build("stdout", Box::new(stdout)))
         .appender(Appender::builder().build("requests", Box::new(rolling)))
-        .logger(Logger::builder().build("app::backend::db", LogLevelFilter::Info))
+        .logger(Logger::builder().build("app::backend::db", LevelFilter::Info))
         .logger(Logger::builder()
                 .appender("requests")
                 .additive(false)
-                .build("app::requests", LogLevelFilter::Info))
-        .build(Root::builder().appender("stdout").appender("requests").build(LogLevelFilter::Info))
+                .build("app::requests", LevelFilter::Info))
+        .build(Root::builder().appender("stdout").appender("requests").build(LevelFilter::Info))
         .unwrap();
     match log4rs::init_config(config) {
         Ok(_) => Ok(log_path),
