@@ -403,7 +403,7 @@ impl Trampoline {
                                            initWithBytes:app.as_ptr()
                                            length:app.len()
                                            encoding: 4]; // UTF8_ENCODING
-            msg_send![wspace, launchApplication: s];
+            let _:() = msg_send![wspace, launchApplication: s];
 
             // Note: launchedApplication doesn't return until the child process
             // calls [NSApplication sharedApplication].
@@ -457,7 +457,7 @@ impl FruitApp {
             ActivationPolicy::Prohibited => 2,
         };
         unsafe {
-            msg_send![self.app, setActivationPolicy: policy_int];
+            let _:() = msg_send![self.app, setActivationPolicy: policy_int];
         }
     }
 
@@ -480,7 +480,7 @@ impl FruitApp {
         unsafe {
             let cls = objc::runtime::Class::get("NSApplication").unwrap();
             let app: *mut objc::runtime::Object = msg_send![cls, sharedApplication];
-            let _ = msg_send![app, terminate: exit_code];
+            let _:() = msg_send![app, terminate: exit_code];
         }
     }
 
@@ -525,13 +525,13 @@ impl FruitApp {
             unsafe {
                 let run_count = self.run_count.get();
                 if run_count == 0 {
-                    let _ = msg_send![self.app, finishLaunching];
+                    let _:() = msg_send![self.app, finishLaunching];
                 }
                 // Create a new release pool every once in a while, draining the old one
                 if run_count % 100 == 0 {
                     let old_pool = self.pool.get();
                     if run_count != 0 {
-                        let _ = msg_send![old_pool, drain];
+                        let _:() = msg_send![old_pool, drain];
                     }
                     let cls = Class::get("NSAutoreleasePool").unwrap();
                     let pool: *mut Object = msg_send![cls, alloc];
@@ -544,8 +544,8 @@ impl FruitApp {
                                                    untilDate: nil
                                                    inMode: mode
                                                    dequeue: 1];
-                let _ = msg_send![self.app, sendEvent: event];
-                let _ = msg_send![self.app, updateWindows];
+                let _:() = msg_send![self.app, sendEvent: event];
+                let _:() = msg_send![self.app, updateWindows];
                 self.run_count.set(run_count + 1);
             }
             if period == RunPeriod::Once {
@@ -615,8 +615,8 @@ impl FruitApp {
             let ini: *mut Object = msg_send![bundle,
                                              pathForResource:objc_name
                                              ofType:objc_ext];
-            let _ = msg_send![objc_name, release];
-            let _ = msg_send![objc_ext, release];
+            let _:() = msg_send![objc_name, release];
+            let _:() = msg_send![objc_ext, release];
             let cstr: *const i8 = msg_send![ini, UTF8String];
             if cstr != std::ptr::null() {
                 let rstr = std::ffi::CStr::from_ptr(cstr).to_string_lossy().into_owned();
