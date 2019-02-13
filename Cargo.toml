@@ -9,6 +9,7 @@ homepage = "https://github.com/mrmekon/fruitbasket"
 repository = "https://github.com/mrmekon/fruitbasket"
 documentation = "https://mrmekon.github.io/fruitbasket/fruitbasket/"
 license = "Apache-2.0"
+readme = "README.md"
 
 [features]
 logging = ["log", "log4rs"]
