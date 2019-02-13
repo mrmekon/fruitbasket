@@ -91,6 +91,16 @@ pub const FORBIDDEN_PLIST: &'static [&'static str] = & [
     "CFBundleVersion",
 ];
 
+/// Apple kInternetEventClass constant
+#[allow(non_upper_case_globals)]
+pub const kInternetEventClass: u32 = 0x4755524c;
+/// Apple kAEGetURL constant
+#[allow(non_upper_case_globals)]
+pub const kAEGetURL: u32 = 0x4755524c;
+/// Apple keyDirectObject constant
+#[allow(non_upper_case_globals)]
+pub const keyDirectObject: u32 = 0x2d2d2d2d;
+
 #[cfg(all(target_os = "macos", not(feature="dummy")))]
 mod osx;
 
@@ -100,6 +110,20 @@ pub use osx::FruitApp;
 #[cfg(all(target_os = "macos", not(feature="dummy")))]
 pub use osx::Trampoline;
 
+#[cfg(all(target_os = "macos", not(feature="dummy")))]
+pub use osx::FruitObjcCallback;
+
+#[cfg(all(target_os = "macos", not(feature="dummy")))]
+pub use osx::FruitCallbackKey;
+
+#[cfg(all(target_os = "macos", not(feature="dummy")))]
+pub use osx::parse_url_event;
+
+#[cfg(any(not(target_os = "macos"), feature="dummy"))]
+pub enum FruitCallbackKey {}
+
+#[cfg(any(not(target_os = "macos"), feature="dummy"))]
+pub type FruitObjcCallback = Box<Fn(*mut u64)>;
 
 /// Main interface for controlling and interacting with the AppKit app
 ///
@@ -118,6 +142,10 @@ impl FruitApp {
         let (tx,rx) = channel();
         FruitApp{ tx: tx, rx: rx}
     }
+    /// Docs in OS X build.
+    pub fn register_callback(&mut self, key: FruitCallbackKey, cb: FruitObjcCallback) {}
+    /// Docs in OS X build.
+    pub fn register_apple_event(&mut self, class: u32, id: u32) {}
     /// Docs in OS X build.
     pub fn set_activation_policy(&self, _policy: ActivationPolicy) {}
     /// Docs in OS X build.
@@ -155,6 +183,9 @@ impl FruitApp {
     /// Docs in OS X build.
     pub fn bundled_resource_path(_name: &str, _extension: &str) -> Option<String> { None }
 }
+
+#[cfg(any(not(target_os = "macos"), feature="dummy"))]
+pub fn parse_url_event(event: *mut Object) -> String { "".into() }
 
 /// API to move the executable into a Mac app bundle and relaunch (if necessary)
 ///

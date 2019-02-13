@@ -44,6 +44,7 @@ use std::cell::Cell;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
+use std::collections::HashMap;
 
 use super::FruitError;
 use super::ActivationPolicy;
@@ -58,6 +59,19 @@ extern crate time;
 extern crate objc;
 use objc::runtime::Object;
 use objc::runtime::Class;
+
+extern crate objc_id;
+use self::objc_id::Id;
+use self::objc_id::WeakId;
+use self::objc_id::Shared;
+
+extern crate objc_foundation;
+use std::sync::{Once, ONCE_INIT};
+use objc::Message;
+use objc::declare::ClassDecl;
+use objc::runtime::{Sel};
+use self::objc_foundation::{INSObject, NSObject};
+
 
 #[allow(non_upper_case_globals)]
 const nil: *mut Object = 0 as *mut Object;
@@ -94,6 +108,65 @@ pub struct FruitApp {
     run_mode: *mut Object,
     tx: Sender<()>,
     rx: Receiver<()>,
+    objc: Box<ObjcWrapper>,
+}
+
+/// A boxed Fn type for receiving Rust callbacks from ObjC events
+pub type FruitObjcCallback = Box<Fn(*mut Object)>;
+
+/// Key into the ObjC callback hash map
+///
+/// You can register to receive callbacks from ObjectiveC based on these keys.
+///
+/// Callbacks that are not tied to objects can be registered with static
+/// selector strings.  For instance, if your app has registered itself as a URL
+/// handler, you would use:
+///   FruitCallbackKey::Method("handleEvent:withReplyEvent:")
+///
+/// Other pre-defined selectors are:
+///   FruitCallbackKey::Method("applicationWillFinishlaunching:")
+///   FruitCallbackKey::Method("applicationDidFinishlaunching:")
+///
+/// The Object variant is currently unused, and reserved for the future.
+/// If the callback will be from a particular object, you use the Object type
+/// with the ObjC object included.  For example, if you want to register for
+/// callbacks from a particular NSButton instance, you would add it to the
+/// callback map with:
+///   let button1: *mut Object = <create an NSButton>;
+///   app.register_callback(FruitCallbackKey::Object(button),
+///     Box::new(|button1| {
+///       println!("got callback from button1, address: {:x}", button1 as u64);
+///   }));
+///
+#[derive(PartialEq, Eq, Hash)]
+pub enum FruitCallbackKey {
+    /// A callback tied to a generic selector
+    Method(&'static str),
+    /// A callback from a specific object instance
+    Object(*mut Object),
+}
+
+/// Rust class for wrapping Objective-C callback class
+///
+/// There is one Objective-C object, implemented in Rust but registered with and
+/// owned by the Objective-C runtime, which handles ObjC callbacks such as those
+/// for the NSApplication delegate.  This is a native Rust class that wraps the
+/// ObjC object.
+///
+/// There should be exactly one of this object, and it must be stored on the
+/// heap (i.e. in a Box).  This is because the ObjC object calls into this class
+/// via raw function pointers, and its address must not change.
+///
+struct ObjcWrapper {
+    objc: Id<ObjcSubclass, Shared>,
+    map: HashMap<FruitCallbackKey, FruitObjcCallback>,
+}
+
+impl ObjcWrapper {
+    fn take(&mut self) -> Id<ObjcSubclass, Shared> {
+        let weak = WeakId::new(&self.objc);
+        weak.load().unwrap()
+    }
 }
 
 /// API to move the executable into a Mac app bundle and relaunch (if necessary)
@@ -126,6 +199,7 @@ pub struct Trampoline {
     icon: String,
     version: String,
     keys: Vec<(String,String)>,
+    plist_raw_strings: Vec<String>,
     resources: Vec<String>,
 }
 
@@ -247,6 +321,21 @@ impl Trampoline {
         for &(ref key, ref value) in pairs {
             self.keys.push((key.to_string(), value.to_string()));
         }
+        self
+    }
+    /// Add a 'raw', preformatted string to Info.plist
+    ///
+    /// Pastes a raw, unedited string into the Info.plist file.  This is
+    /// dangerous, and should be used with care.  Use this for adding nested
+    /// structures, such as when registering URI schemes.
+    ///
+    /// *MUST* be in the JSON plist format.  If coming from XML format, you can
+    /// use `plutil -convert json -r Info.plist` to convert.
+    ///
+    /// Take care not to override any of the keys in fruitbasket::FORBIDDEN_PLIST
+    /// unless you really know what you are doing.
+    pub fn plist_raw_string(&mut self, s: String) -> &mut Self {
+        self.plist_raw_strings.push(s);
         self
     }
     /// Add file to Resources directory of app bundle
@@ -390,6 +479,12 @@ impl Trampoline {
                     write!(&mut f, "  {} = {};\n", key, val)?;
                 }
             }
+
+            // Write raw plist fields
+            for raw in &self.plist_raw_strings {
+                write!(&mut f, "{}\n", raw)?;
+            }
+
             write!(&mut f, "}}\n")?;
 
             // Launch newly created bundle
@@ -438,6 +533,13 @@ impl FruitApp {
                                                   initWithBytes:rust_runmode.as_ptr()
                                                   length:rust_runmode.len()
                                                   encoding: 4]; // UTF8_ENCODING
+            let objc = ObjcSubclass::new().share();
+            let rustobjc = Box::new(ObjcWrapper {
+                objc: objc,
+                map: HashMap::new(),
+            });
+            let ptr: u64 = &*rustobjc as *const ObjcWrapper as u64;
+            let _:() = msg_send![rustobjc.objc, setRustWrapper: ptr];
             FruitApp {
                 app: app,
                 pool: Cell::new(pool),
@@ -445,7 +547,42 @@ impl FruitApp {
                 run_mode: run_mode,
                 tx: tx,
                 rx: rx,
+                objc: rustobjc,
             }
+        }
+    }
+
+    /// Register to receive a callback when the ObjC runtime raises one
+    ///
+    /// ObjCCallbackKey is used to specify the source of the callback, which
+    /// must be something registered with the ObjC runtime.
+    ///
+    pub fn register_callback(&mut self, key: FruitCallbackKey, cb: FruitObjcCallback) {
+        let _ = self.objc.map.insert(key, cb);
+    }
+
+    /// Register application to receive Apple events of the given type
+    ///
+    /// Register with the underlying NSAppleEventManager so this application gets
+    /// events matching the given Class/ID tuple.  This causes the internal ObjC
+    /// delegate to receive `handleEvent:withReplyEvent:` messages when the
+    /// specified event is sent to your application.
+    ///
+    /// This registers the event to be received internally.  To receive it in
+    /// your code, you must use FruitApp::register_callback to listen for the
+    /// selector by specifying key:
+    ///   FruitCallbackKey::Method("handleEvent:withReplyEvent:")
+    ///
+    pub fn register_apple_event(&mut self, class: u32, id: u32) {
+        unsafe {
+            let cls = Class::get("NSAppleEventManager").unwrap();
+            let manager: *mut Object = msg_send![cls, sharedAppleEventManager];
+            let objc = (*self.objc).take();
+            let _ = msg_send![manager,
+                              setEventHandler: objc
+                              andSelector: sel!(handleEvent:withReplyEvent:)
+                              forEventClass: class
+                              andEventID: id];
         }
     }
 
@@ -525,6 +662,10 @@ impl FruitApp {
             unsafe {
                 let run_count = self.run_count.get();
                 if run_count == 0 {
+                    let cls = objc::runtime::Class::get("NSApplication").unwrap();
+                    let app: *mut objc::runtime::Object = msg_send![cls, sharedApplication];
+                    let objc = (*self.objc).take();
+                    let _:() = msg_send![app, setDelegate: objc];
                     let _:() = msg_send![self.app, finishLaunching];
                 }
                 // Create a new release pool every once in a while, draining the old one
@@ -624,5 +765,120 @@ impl FruitApp {
             }
             None
         }
+    }
+}
+
+/// Parse an Apple URL event into a URL string
+///
+/// Takes an NSAppleEventDescriptor from an Apple URL event, unwraps
+/// it, and returns the contained URL as a String.
+pub fn parse_url_event(event: *mut Object) -> String {
+    if event as u64 == 0u64 {
+        return "".into();
+    }
+    unsafe {
+        let class: u32 = msg_send![event, eventClass];
+        let id: u32 = msg_send![event, eventID];
+        if class != ::kInternetEventClass || id != ::kAEGetURL {
+            return "".into();
+        }
+        let subevent: *mut Object = msg_send![event, paramDescriptorForKeyword: ::keyDirectObject];
+        let nsstring: *mut Object = msg_send![subevent, stringValue];
+        let cstr: *const i8 = msg_send![nsstring, UTF8String];
+        if cstr != std::ptr::null() {
+            let rstr = std::ffi::CStr::from_ptr(cstr).to_string_lossy().into_owned();
+            return rstr;
+        }
+    }
+    "".into()
+}
+
+/// ObjcSubclass is a subclass of the objective-c NSObject base class.
+/// This is registered with the objc runtime, so instances of this class
+/// are "owned" by objc, and have no associated Rust data.
+///
+/// This can be wrapped with a ObjcWrapper, which is a proper Rust struct
+/// with its own storage, and holds an instance of ObjcSubclass.
+///
+/// An ObjcSubclass can "talk" to its Rust wrapper class through function
+/// pointers, as long as the storage is on the heap with a Box and the underlying
+/// memory address doesn't change.
+///
+enum ObjcSubclass {}
+
+unsafe impl Message for ObjcSubclass { }
+
+static OBJC_SUBCLASS_REGISTER_CLASS: Once = ONCE_INIT;
+
+impl ObjcSubclass {
+    /// Call a registered Rust callback
+    fn dispatch_cb(wrap_ptr: u64, key: FruitCallbackKey, obj: *mut Object) {
+        if wrap_ptr == 0 {
+            return;
+        }
+        let objcwrap: &mut ObjcWrapper = unsafe { &mut *(wrap_ptr as *mut ObjcWrapper) };
+        if let Some(ref cb) = objcwrap.map.get(&key) {
+            cb(obj);
+        }
+    }
+}
+
+/// Define an ObjC class and register it with the ObjC runtime
+impl INSObject for ObjcSubclass {
+    fn class() -> &'static Class {
+        OBJC_SUBCLASS_REGISTER_CLASS.call_once(|| {
+            let superclass = NSObject::class();
+            let mut decl = ClassDecl::new("ObjcSubclass", superclass).unwrap();
+            decl.add_ivar::<u64>("_rustwrapper");
+
+            /// Callback for events from Apple's NSAppleEventManager
+            extern fn objc_apple_event(this: &Object, _cmd: Sel, event: u64, _reply: u64) {
+                let ptr: u64 = unsafe { *this.get_ivar("_rustwrapper") };
+                ObjcSubclass::dispatch_cb(ptr,
+                                          FruitCallbackKey::Method("handleEvent:withReplyEvent:"),
+                                          event as *mut Object);
+            }
+            /// NSApplication delegate callback
+            extern fn objc_did_finish(this: &Object, _cmd: Sel, event: u64) {
+                let ptr: u64 = unsafe { *this.get_ivar("_rustwrapper") };
+                ObjcSubclass::dispatch_cb(ptr,
+                                          FruitCallbackKey::Method("applicationDidFinishLaunching:"),
+                                          event as *mut Object);
+            }
+            /// NSApplication delegate callback
+            extern fn objc_will_finish(this: &Object, _cmd: Sel, event: u64) {
+                let ptr: u64 = unsafe { *this.get_ivar("_rustwrapper") };
+                ObjcSubclass::dispatch_cb(ptr,
+                                          FruitCallbackKey::Method("applicationWillFinishLaunching:"),
+                                          event as *mut Object);
+            }
+            /// Register the Rust ObjcWrapper instance that wraps this object
+            ///
+            /// In order for an instance of this ObjC owned object to reach back
+            /// into "pure Rust", it needs to know the location of Rust
+            /// functions.  This is accomplished by wrapping it in a Rust struct,
+            /// which is itself in a Box on the heap to ensure a fixed location
+            /// in memory.  The address of this wrapping struct is given to this
+            /// object by casting the Box into a raw pointer, and then casting
+            /// that into a u64, which is stored here.
+            extern fn objc_set_rust_wrapper(this: &mut Object, _cmd: Sel, ptr: u64) {
+                unsafe {this.set_ivar("_rustwrapper", ptr);}
+            }
+            unsafe {
+                // Register all of the above handlers as true ObjC selectors:
+                let f: extern fn(&mut Object, Sel, u64) = objc_set_rust_wrapper;
+                decl.add_method(sel!(setRustWrapper:), f);
+                let f: extern fn(&Object, Sel, u64, u64) = objc_apple_event;
+                decl.add_method(sel!(handleEvent:withReplyEvent:), f);
+                let f: extern fn(&Object, Sel, u64) = objc_did_finish;
+                decl.add_method(sel!(applicationDidFinishLaunching:), f);
+                let f: extern fn(&Object, Sel, u64) = objc_will_finish;
+                decl.add_method(sel!(applicationWillFinishLaunching:), f);
+            }
+
+            decl.register();
+        });
+
+        Class::get("ObjcSubclass").unwrap()
     }
 }
