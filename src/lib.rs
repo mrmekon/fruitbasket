@@ -45,6 +45,7 @@ use std::sync::mpsc::Receiver;
 use std::thread;
 
 extern crate time;
+extern crate dirs;
 
 #[cfg(all(target_os = "macos", not(feature="dummy")))]
 #[macro_use]
@@ -91,6 +92,16 @@ pub const FORBIDDEN_PLIST: &'static [&'static str] = & [
     "CFBundleVersion",
 ];
 
+/// Apple kInternetEventClass constant
+#[allow(non_upper_case_globals)]
+pub const kInternetEventClass: u32 = 0x4755524c;
+/// Apple kAEGetURL constant
+#[allow(non_upper_case_globals)]
+pub const kAEGetURL: u32 = 0x4755524c;
+/// Apple keyDirectObject constant
+#[allow(non_upper_case_globals)]
+pub const keyDirectObject: u32 = 0x2d2d2d2d;
+
 #[cfg(all(target_os = "macos", not(feature="dummy")))]
 mod osx;
 
@@ -100,6 +111,27 @@ pub use osx::FruitApp;
 #[cfg(all(target_os = "macos", not(feature="dummy")))]
 pub use osx::Trampoline;
 
+#[cfg(all(target_os = "macos", not(feature="dummy")))]
+pub use osx::FruitObjcCallback;
+
+#[cfg(all(target_os = "macos", not(feature="dummy")))]
+pub use osx::FruitCallbackKey;
+
+#[cfg(all(target_os = "macos", not(feature="dummy")))]
+pub use osx::parse_url_event;
+
+#[cfg(any(not(target_os = "macos"), feature="dummy"))]
+/// Docs in OS X build.
+pub enum FruitCallbackKey {
+    /// Docs in OS X build.
+    Method(&'static str),
+    /// Docs in OS X build.
+    Object(*mut u64),
+}
+
+#[cfg(any(not(target_os = "macos"), feature="dummy"))]
+/// Docs in OS X build.
+pub type FruitObjcCallback = Box<Fn(*mut u64)>;
 
 /// Main interface for controlling and interacting with the AppKit app
 ///
@@ -118,6 +150,10 @@ impl FruitApp {
         let (tx,rx) = channel();
         FruitApp{ tx: tx, rx: rx}
     }
+    /// Docs in OS X build.
+    pub fn register_callback(&mut self, _key: FruitCallbackKey, _cb: FruitObjcCallback) {}
+    /// Docs in OS X build.
+    pub fn register_apple_event(&mut self, _class: u32, _id: u32) {}
     /// Docs in OS X build.
     pub fn set_activation_policy(&self, _policy: ActivationPolicy) {}
     /// Docs in OS X build.
@@ -156,6 +192,10 @@ impl FruitApp {
     pub fn bundled_resource_path(_name: &str, _extension: &str) -> Option<String> { None }
 }
 
+#[cfg(any(not(target_os = "macos"), feature="dummy"))]
+/// Docs in OS X build.
+pub fn parse_url_event(_event: *mut u64) -> String { "".into() }
+
 /// API to move the executable into a Mac app bundle and relaunch (if necessary)
 ///
 /// Dummy implementation for non-OSX platforms.  See OS X build for proper
@@ -180,6 +220,8 @@ impl Trampoline {
     pub fn plist_key(&mut self, _key: &str, _value: &str) -> &mut Self { self }
     /// Docs in OS X build.
     pub fn plist_keys(&mut self, _pairs: &Vec<(&str,&str)>) -> &mut Self { self }
+    /// Docs in OS X build.
+    pub fn plist_raw_string(&mut self, _s: String) -> &mut Self { self }
     /// Docs in OS X build.
     pub fn resource(&mut self, _file: &str) -> &mut Self { self }
     /// Docs in OS X build.
@@ -333,7 +375,7 @@ pub fn create_logger(filename: &str,
     use self::log4rs::config::{Appender, Config, Logger, Root};
 
     let log_path = match dir {
-        LogDir::Home => format!("{}/{}", std::env::home_dir().unwrap().display(), filename),
+        LogDir::Home => format!("{}/{}", dirs::home_dir().unwrap().display(), filename),
         LogDir::Temp => format!("{}/{}", std::env::temp_dir().display(), filename),
         LogDir::Custom(s) => format!("{}/{}", s, filename),
     };
