@@ -103,9 +103,9 @@ extern {}
 /// be pumped from the same main thread.  Doing otherwise angers the beast.
 ///
 /// An application does *not* need to be in a Mac app bundle to run, so this can
-/// be created in any application with `FruitApp::new()`.  However, many Apple
+/// be created in any application with [FruitApp::new](FruitApp::new).  However, many Apple
 /// frameworks *do* require the application to be running from a bundle, so you
-/// may want to consider creating your FruitApp instance from the `Trampoline`
+/// may want to consider creating your FruitApp instance from the [Trampoline](Trampoline)
 /// struct's builder instead.
 ///
 pub struct FruitApp {
@@ -183,7 +183,7 @@ impl ObjcWrapper {
 /// module documentation for why this is often important.
 ///
 /// If the currently running process is already in an app bundle, Trampoline
-/// does nothing and is equivalent to calling `FruitApp::new()`.
+/// does nothing and is equivalent to calling [FruitApp::new](FruitApp::new).
 ///
 /// The builder takes a variety of information that is required for creating a
 /// Mac app (notably: app name, executable name, unique identifier), as well
@@ -303,7 +303,7 @@ impl Trampoline {
     /// Be sure to format your values appropriately for this style.  Read up on
     /// [Old-Style ASCII Property Lists](https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/PropertyLists/OldStylePlists/OldStylePLists.html).  You can also verify your
     /// formatting by creating a simple `test.plist` with your key/value pairs
-    /// in it, surround the entire file in braces (`{' and ' }'), and then run
+    /// in it, surround the entire file in braces (`{` and `}`), and then run
     /// `plutil test.plist` to validate the formatting.
     ///
     /// See the [Apple documentation](https://developer.apple.com/library/content/documentation/General/Reference/InfoPlistKeyReference/Introduction/Introduction.html#//apple_ref/doc/uid/TP40009247)
@@ -322,7 +322,7 @@ impl Trampoline {
     }
     /// Set multiple arbitrary key/value pairs in the Info.plist
     ///
-    /// See documentation of `plist_key()`.  This function does the same, but
+    /// See documentation of [plist_key()](Trampoline::plist_key).  This function does the same, but
     /// allows specifying more than one key/value pair at a time.
     pub fn plist_keys(&mut self, pairs: &Vec<(&str,&str)>) -> &mut Self {
         for &(ref key, ref value) in pairs {
@@ -339,7 +339,7 @@ impl Trampoline {
     /// *MUST* be in the JSON plist format.  If coming from XML format, you can
     /// use `plutil -convert json -r Info.plist` to convert.
     ///
-    /// Take care not to override any of the keys in fruitbasket::FORBIDDEN_PLIST
+    /// Take care not to override any of the keys in [FORBIDDEN_PLIST](FORBIDDEN_PLIST)
     /// unless you really know what you are doing.
     pub fn plist_raw_string(&mut self, s: String) -> &mut Self {
         self.plist_raw_strings.push(s);
@@ -365,7 +365,7 @@ impl Trampoline {
 
     /// Add multiple files to Resources directory of app bundle
     ///
-    /// See documentation of `resource()`.  This function does the same, but
+    /// See documentation of [resource()](Trampoline::resource).  This function does the same, but
     /// allows specifying more than one resource at a time.
     pub fn resources(&mut self, files: &Vec<&str>) -> &mut Self{
         for file in files {
@@ -576,9 +576,10 @@ impl FruitApp {
     /// specified event is sent to your application.
     ///
     /// This registers the event to be received internally.  To receive it in
-    /// your code, you must use FruitApp::register_callback to listen for the
+    /// your code, you must use [register_callback](FruitApp::register_callback) to listen for the
     /// selector by specifying key:
-    ///   FruitCallbackKey::Method("handleEvent:withReplyEvent:")
+    ///
+    ///   `FruitCallbackKey::Method("handleEvent:withReplyEvent:")`
     ///
     pub fn register_apple_event(&mut self, class: u32, id: u32) {
         unsafe {

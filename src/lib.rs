@@ -298,7 +298,7 @@ pub struct FruitStopper {
 impl FruitStopper {
     /// Stop the run loop on the `FruitApp` instance that created this object
     ///
-    /// This is equivalent to passing the object to `FruitApp::stop()`.  See it
+    /// This is equivalent to passing the object to [FruitApp::stop](FruitApp::stop).  See it
     /// for more documentation.
     pub fn stop(&self) {
         let _ = self.tx.send(());
