@@ -34,6 +34,11 @@
 //! If uncertain, use a `Trampoline`.  You can hit very strange behavior when running
 //! Cocoa apps outside of an app bundle.
 #![deny(missing_docs)]
+
+// Temporarily (mmmmhmm...) disable deprecated function warnings, because objc macros
+// throw tons of them in rustc 1.34-nightly when initializing atomic uints.
+#![allow(deprecated)]
+
 use std;
 use std::thread;
 use std::time::Duration;
@@ -55,6 +60,8 @@ use super::DEFAULT_PLIST;
 use super::FORBIDDEN_PLIST;
 
 extern crate time;
+
+extern crate dirs;
 
 extern crate objc;
 use objc::runtime::Object;
@@ -424,7 +431,7 @@ impl Trampoline {
             let install_dir: PathBuf = match dir {
                 InstallDir::Temp => std::env::temp_dir(),
                 InstallDir::SystemApplications => PathBuf::from("/Applications/"),
-                InstallDir::UserApplications => std::env::home_dir().unwrap().join("Applications/"),
+                InstallDir::UserApplications => dirs::home_dir().unwrap().join("Applications/"),
                 InstallDir::Custom(dir) => std::fs::canonicalize(PathBuf::from(dir))?,
             };
             info!("Install dir: {:?}", install_dir);

@@ -45,6 +45,7 @@ use std::sync::mpsc::Receiver;
 use std::thread;
 
 extern crate time;
+extern crate dirs;
 
 #[cfg(all(target_os = "macos", not(feature="dummy")))]
 #[macro_use]
@@ -364,7 +365,7 @@ pub fn create_logger(filename: &str,
     use self::log4rs::config::{Appender, Config, Logger, Root};
 
     let log_path = match dir {
-        LogDir::Home => format!("{}/{}", std::env::home_dir().unwrap().display(), filename),
+        LogDir::Home => format!("{}/{}", dirs::home_dir().unwrap().display(), filename),
         LogDir::Temp => format!("{}/{}", std::env::temp_dir().display(), filename),
         LogDir::Custom(s) => format!("{}/{}", s, filename),
     };

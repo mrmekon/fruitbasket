@@ -19,7 +19,6 @@ use fruitbasket::InstallDir;
 use fruitbasket::RunPeriod;
 use fruitbasket::FruitError;
 use fruitbasket::FruitCallbackKey;
-use std::time::Duration;
 use std::path::PathBuf;
 
 #[macro_use]
