@@ -121,9 +121,16 @@ pub use osx::FruitCallbackKey;
 pub use osx::parse_url_event;
 
 #[cfg(any(not(target_os = "macos"), feature="dummy"))]
-pub enum FruitCallbackKey {}
+/// Docs in OS X build.
+pub enum FruitCallbackKey {
+    /// Docs in OS X build.
+    Method(&'static str),
+    /// Docs in OS X build.
+    Object(*mut u64),
+}
 
 #[cfg(any(not(target_os = "macos"), feature="dummy"))]
+/// Docs in OS X build.
 pub type FruitObjcCallback = Box<Fn(*mut u64)>;
 
 /// Main interface for controlling and interacting with the AppKit app
@@ -144,9 +151,9 @@ impl FruitApp {
         FruitApp{ tx: tx, rx: rx}
     }
     /// Docs in OS X build.
-    pub fn register_callback(&mut self, key: FruitCallbackKey, cb: FruitObjcCallback) {}
+    pub fn register_callback(&mut self, _key: FruitCallbackKey, _cb: FruitObjcCallback) {}
     /// Docs in OS X build.
-    pub fn register_apple_event(&mut self, class: u32, id: u32) {}
+    pub fn register_apple_event(&mut self, _class: u32, _id: u32) {}
     /// Docs in OS X build.
     pub fn set_activation_policy(&self, _policy: ActivationPolicy) {}
     /// Docs in OS X build.
@@ -186,7 +193,8 @@ impl FruitApp {
 }
 
 #[cfg(any(not(target_os = "macos"), feature="dummy"))]
-pub fn parse_url_event(event: *mut Object) -> String { "".into() }
+/// Docs in OS X build.
+pub fn parse_url_event(_event: *mut u64) -> String { "".into() }
 
 /// API to move the executable into a Mac app bundle and relaunch (if necessary)
 ///
@@ -212,6 +220,8 @@ impl Trampoline {
     pub fn plist_key(&mut self, _key: &str, _value: &str) -> &mut Self { self }
     /// Docs in OS X build.
     pub fn plist_keys(&mut self, _pairs: &Vec<(&str,&str)>) -> &mut Self { self }
+    /// Docs in OS X build.
+    pub fn plist_raw_string(&mut self, _s: String) -> &mut Self { self }
     /// Docs in OS X build.
     pub fn resource(&mut self, _file: &str) -> &mut Self { self }
     /// Docs in OS X build.
