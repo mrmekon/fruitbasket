@@ -540,7 +540,7 @@ impl FruitApp {
                 }
                 let mode = self.run_mode;
                 let event: *mut Object = msg_send![self.app,
-                                                   nextEventMatchingMask: -1
+                                                   nextEventMatchingMask: 0xffffffffffffffffu64
                                                    untilDate: nil
                                                    inMode: mode
                                                    dequeue: 1];
