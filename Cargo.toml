@@ -16,13 +16,14 @@ dummy = []
 
 [dependencies]
 time = "0.1"
-log = {version = "0.4", optional = true }
-dirs = "1.0.4"
+log = {version = "0.4", optional = true, default-features = false, features = ["std"] }
+dirs = "^2.0"
 
 [dependencies.log4rs]
 version = "0.8"
 optional = true
-features = ["rolling_file_appender"]
+default-features = false
+features = ["console_appender","rolling_file_appender", "compound_policy", "fixed_window_roller", "size_trigger"]
 
 [dev-dependencies]
 log = "0.4"
