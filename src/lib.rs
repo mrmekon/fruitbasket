@@ -280,7 +280,7 @@ impl Error for FruitError {
     fn description(&self) -> &str {
         "Hmm"
     }
-    fn cause(&self) -> Option<&Error> {
+    fn cause(&self) -> Option<&dyn Error> {
         None
     }
 }

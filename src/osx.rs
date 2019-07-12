@@ -119,7 +119,7 @@ pub struct FruitApp {
 }
 
 /// A boxed Fn type for receiving Rust callbacks from ObjC events
-pub type FruitObjcCallback = Box<Fn(*mut Object)>;
+pub type FruitObjcCallback = Box<dyn Fn(*mut Object)>;
 
 /// Key into the ObjC callback hash map
 ///
