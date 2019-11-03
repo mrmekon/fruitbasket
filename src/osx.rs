@@ -586,7 +586,7 @@ impl FruitApp {
             let cls = Class::get("NSAppleEventManager").unwrap();
             let manager: *mut Object = msg_send![cls, sharedAppleEventManager];
             let objc = (*self.objc).take();
-            let _ = msg_send![manager,
+            let _:() = msg_send![manager,
                               setEventHandler: objc
                               andSelector: sel!(handleEvent:withReplyEvent:)
                               forEventClass: class
