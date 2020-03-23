@@ -36,18 +36,18 @@
 #![deny(missing_docs)]
 
 use std::error::Error;
-use std::time::Duration;
 use std::sync::mpsc::Sender;
+use std::time::Duration;
 
-#[cfg(any(not(target_os = "macos"), feature="dummy"))]
+#[cfg(any(not(target_os = "macos"), feature = "dummy"))]
 use std::sync::mpsc::Receiver;
-#[cfg(any(not(target_os = "macos"), feature="dummy"))]
+#[cfg(any(not(target_os = "macos"), feature = "dummy"))]
 use std::thread;
 
-extern crate time;
 extern crate dirs;
+extern crate time;
 
-#[cfg(all(target_os = "macos", not(feature="dummy")))]
+#[cfg(all(target_os = "macos", not(feature = "dummy")))]
 #[macro_use]
 extern crate objc;
 
@@ -72,10 +72,10 @@ macro_rules! info {
 /// default values provided here, but can be overridden by your application with
 /// the Trampoline builder's `plist_key*()` functions.
 pub const DEFAULT_PLIST: &'static [(&'static str, &'static str)] = &[
-    ("CFBundleInfoDictionaryVersion","6.0"),
-    ("CFBundlePackageType","APPL"),
-    ("CFBundleSignature","xxxx"),
-    ("LSMinimumSystemVersion","10.10.0"),
+    ("CFBundleInfoDictionaryVersion", "6.0"),
+    ("CFBundlePackageType", "APPL"),
+    ("CFBundleSignature", "xxxx"),
+    ("LSMinimumSystemVersion", "10.10.0"),
 ];
 
 /// Info.plist entries that are set, and cannot be overridden
@@ -83,7 +83,7 @@ pub const DEFAULT_PLIST: &'static [(&'static str, &'static str)] = &[
 /// These properties are always set in the app bundle's Property List, based on
 /// information provided to the Trampoline builder, and cannot be overridden
 /// with the builder's `plist_key*()` functions.
-pub const FORBIDDEN_PLIST: &'static [&'static str] = & [
+pub const FORBIDDEN_PLIST: &'static [&'static str] = &[
     "CFBundleName",
     "CFBundleDisplayName",
     "CFBundleIdentifier",
@@ -102,25 +102,25 @@ pub const kAEGetURL: u32 = 0x4755524c;
 #[allow(non_upper_case_globals)]
 pub const keyDirectObject: u32 = 0x2d2d2d2d;
 
-#[cfg(all(target_os = "macos", not(feature="dummy")))]
+#[cfg(all(target_os = "macos", not(feature = "dummy")))]
 mod osx;
 
-#[cfg(all(target_os = "macos", not(feature="dummy")))]
+#[cfg(all(target_os = "macos", not(feature = "dummy")))]
 pub use osx::FruitApp;
 
-#[cfg(all(target_os = "macos", not(feature="dummy")))]
+#[cfg(all(target_os = "macos", not(feature = "dummy")))]
 pub use osx::Trampoline;
 
-#[cfg(all(target_os = "macos", not(feature="dummy")))]
+#[cfg(all(target_os = "macos", not(feature = "dummy")))]
 pub use osx::FruitObjcCallback;
 
-#[cfg(all(target_os = "macos", not(feature="dummy")))]
+#[cfg(all(target_os = "macos", not(feature = "dummy")))]
 pub use osx::FruitCallbackKey;
 
-#[cfg(all(target_os = "macos", not(feature="dummy")))]
+#[cfg(all(target_os = "macos", not(feature = "dummy")))]
 pub use osx::parse_url_event;
 
-#[cfg(any(not(target_os = "macos"), feature="dummy"))]
+#[cfg(any(not(target_os = "macos"), feature = "dummy"))]
 /// Docs in OS X build.
 pub enum FruitCallbackKey {
     /// Docs in OS X build.
@@ -129,7 +129,7 @@ pub enum FruitCallbackKey {
     Object(*mut u64),
 }
 
-#[cfg(any(not(target_os = "macos"), feature="dummy"))]
+#[cfg(any(not(target_os = "macos"), feature = "dummy"))]
 /// Docs in OS X build.
 pub type FruitObjcCallback = Box<Fn(*mut u64)>;
 
@@ -137,18 +137,18 @@ pub type FruitObjcCallback = Box<Fn(*mut u64)>;
 ///
 /// Dummy implementation for non-OSX platforms.  See OS X build for proper
 /// documentation.
-#[cfg(any(not(target_os = "macos"), feature="dummy"))]
+#[cfg(any(not(target_os = "macos"), feature = "dummy"))]
 pub struct FruitApp {
     tx: Sender<()>,
     rx: Receiver<()>,
 }
-#[cfg(any(not(target_os = "macos"), feature="dummy"))]
+#[cfg(any(not(target_os = "macos"), feature = "dummy"))]
 impl FruitApp {
     /// Docs in OS X build.
     pub fn new() -> FruitApp {
         use std::sync::mpsc::channel;
-        let (tx,rx) = channel();
-        FruitApp{ tx: tx, rx: rx}
+        let (tx, rx) = channel();
+        FruitApp { tx: tx, rx: rx }
     }
     /// Docs in OS X build.
     pub fn register_callback(&mut self, _key: FruitCallbackKey, _cb: FruitObjcCallback) {}
@@ -165,7 +165,7 @@ impl FruitApp {
         stopper.stop();
     }
     /// Docs in OS X build.
-    pub fn run(&mut self, period: RunPeriod) -> Result<(),()> {
+    pub fn run(&mut self, period: RunPeriod) -> Result<(), ()> {
         let start = time::now_utc().to_timespec();
         loop {
             if self.rx.try_recv().is_ok() {
@@ -186,52 +186,84 @@ impl FruitApp {
     }
     /// Docs in OS X build.
     pub fn stopper(&self) -> FruitStopper {
-        FruitStopper { tx: self.tx.clone() }
+        FruitStopper {
+            tx: self.tx.clone(),
+        }
     }
     /// Docs in OS X build.
-    pub fn bundled_resource_path(_name: &str, _extension: &str) -> Option<String> { None }
+    pub fn bundled_resource_path(_name: &str, _extension: &str) -> Option<String> {
+        None
+    }
 }
 
-#[cfg(any(not(target_os = "macos"), feature="dummy"))]
+#[cfg(any(not(target_os = "macos"), feature = "dummy"))]
 /// Docs in OS X build.
-pub fn parse_url_event(_event: *mut u64) -> String { "".into() }
+pub fn parse_url_event(_event: *mut u64) -> String {
+    "".into()
+}
 
 /// API to move the executable into a Mac app bundle and relaunch (if necessary)
 ///
 /// Dummy implementation for non-OSX platforms.  See OS X build for proper
 /// documentation.
-#[cfg(any(not(target_os = "macos"), feature="dummy"))]
+#[cfg(any(not(target_os = "macos"), feature = "dummy"))]
 pub struct Trampoline {}
-#[cfg(any(not(target_os = "macos"), feature="dummy"))]
+#[cfg(any(not(target_os = "macos"), feature = "dummy"))]
 impl Trampoline {
     /// Docs in OS X build.
-    pub fn new(_name: &str, _exe: &str, _ident: &str) -> Trampoline { Trampoline {} }
-    /// Docs in OS X build.
-    pub fn name(&mut self, _name: &str) -> &mut Self { self }
-    /// Docs in OS X build.
-    pub fn exe(&mut self, _exe: &str) -> &mut Self { self }
-    /// Docs in OS X build.
-    pub fn ident(&mut self, _ident: &str) -> &mut Self { self }
-    /// Docs in OS X build.
-    pub fn icon(&mut self, _icon: &str) -> &mut Self { self }
-    /// Docs in OS X build.
-    pub fn version(&mut self, _version: &str) -> &mut Self { self }
-    /// Docs in OS X build.
-    pub fn plist_key(&mut self, _key: &str, _value: &str) -> &mut Self { self }
-    /// Docs in OS X build.
-    pub fn plist_keys(&mut self, _pairs: &Vec<(&str,&str)>) -> &mut Self { self }
-    /// Docs in OS X build.
-    pub fn plist_raw_string(&mut self, _s: String) -> &mut Self { self }
-    /// Docs in OS X build.
-    pub fn resource(&mut self, _file: &str) -> &mut Self { self }
-    /// Docs in OS X build.
-    pub fn resources(&mut self, _files: &Vec<&str>) -> &mut Self{ self }
-    /// Docs in OS X build.
-    pub fn build(&mut self, _dir: InstallDir) -> Result<FruitApp, FruitError> {
-        Err(FruitError::UnsupportedPlatform("fruitbasket disabled or not supported on this platform.".to_string()))
+    pub fn new(_name: &str, _exe: &str, _ident: &str) -> Trampoline {
+        Trampoline {}
     }
     /// Docs in OS X build.
-    pub fn is_bundled() -> bool { false }
+    pub fn name(&mut self, _name: &str) -> &mut Self {
+        self
+    }
+    /// Docs in OS X build.
+    pub fn exe(&mut self, _exe: &str) -> &mut Self {
+        self
+    }
+    /// Docs in OS X build.
+    pub fn ident(&mut self, _ident: &str) -> &mut Self {
+        self
+    }
+    /// Docs in OS X build.
+    pub fn icon(&mut self, _icon: &str) -> &mut Self {
+        self
+    }
+    /// Docs in OS X build.
+    pub fn version(&mut self, _version: &str) -> &mut Self {
+        self
+    }
+    /// Docs in OS X build.
+    pub fn plist_key(&mut self, _key: &str, _value: &str) -> &mut Self {
+        self
+    }
+    /// Docs in OS X build.
+    pub fn plist_keys(&mut self, _pairs: &Vec<(&str, &str)>) -> &mut Self {
+        self
+    }
+    /// Docs in OS X build.
+    pub fn plist_raw_string(&mut self, _s: String) -> &mut Self {
+        self
+    }
+    /// Docs in OS X build.
+    pub fn resource(&mut self, _file: &str) -> &mut Self {
+        self
+    }
+    /// Docs in OS X build.
+    pub fn resources(&mut self, _files: &Vec<&str>) -> &mut Self {
+        self
+    }
+    /// Docs in OS X build.
+    pub fn build(&mut self, _dir: InstallDir) -> Result<FruitApp, FruitError> {
+        Err(FruitError::UnsupportedPlatform(
+            "fruitbasket disabled or not supported on this platform.".to_string(),
+        ))
+    }
+    /// Docs in OS X build.
+    pub fn is_bundled() -> bool {
+        false
+    }
 }
 
 /// Options for how long to run the event loop on each call
@@ -361,18 +393,20 @@ pub enum LogDir {
 ///
 /// Full path to opened log file on disk
 #[cfg(feature = "logging")]
-pub fn create_logger(filename: &str,
-                     dir: LogDir,
-                     max_size_mb: u32,
-                     backup_count: u32) -> Result<String, String> {
-    use log::LevelFilter;
+pub fn create_logger(
+    filename: &str,
+    dir: LogDir,
+    max_size_mb: u32,
+    backup_count: u32,
+) -> Result<String, String> {
     use self::log4rs::append::console::ConsoleAppender;
-    use self::log4rs::append::rolling_file::RollingFileAppender;
-    use self::log4rs::append::rolling_file::policy::compound::CompoundPolicy;
     use self::log4rs::append::rolling_file::policy::compound::roll::fixed_window::FixedWindowRoller;
     use self::log4rs::append::rolling_file::policy::compound::trigger::size::SizeTrigger;
-    use self::log4rs::encode::pattern::PatternEncoder;
+    use self::log4rs::append::rolling_file::policy::compound::CompoundPolicy;
+    use self::log4rs::append::rolling_file::RollingFileAppender;
     use self::log4rs::config::{Appender, Config, Logger, Root};
+    use self::log4rs::encode::pattern::PatternEncoder;
+    use log::LevelFilter;
 
     let log_path = match dir {
         LogDir::Home => format!("{}/{}", dirs::home_dir().unwrap().display(), filename),
@@ -382,9 +416,12 @@ pub fn create_logger(filename: &str,
     let stdout = ConsoleAppender::builder()
         .encoder(Box::new(PatternEncoder::new("{m}{n}")))
         .build();
-    let trigger = Box::new(SizeTrigger::new(1024*1024*max_size_mb as u64));
-    let roller = Box::new(FixedWindowRoller::builder()
-                          .build(&format!("{}.{{}}", log_path), backup_count).unwrap());
+    let trigger = Box::new(SizeTrigger::new(1024 * 1024 * max_size_mb as u64));
+    let roller = Box::new(
+        FixedWindowRoller::builder()
+            .build(&format!("{}.{{}}", log_path), backup_count)
+            .unwrap(),
+    );
     let policy = Box::new(CompoundPolicy::new(trigger, roller));
     let rolling = RollingFileAppender::builder()
         .build(&log_path, policy)
@@ -394,11 +431,18 @@ pub fn create_logger(filename: &str,
         .appender(Appender::builder().build("stdout", Box::new(stdout)))
         .appender(Appender::builder().build("requests", Box::new(rolling)))
         .logger(Logger::builder().build("app::backend::db", LevelFilter::Info))
-        .logger(Logger::builder()
+        .logger(
+            Logger::builder()
                 .appender("requests")
                 .additive(false)
-                .build("app::requests", LevelFilter::Info))
-        .build(Root::builder().appender("stdout").appender("requests").build(LevelFilter::Info))
+                .build("app::requests", LevelFilter::Info),
+        )
+        .build(
+            Root::builder()
+                .appender("stdout")
+                .appender("requests")
+                .build(LevelFilter::Info),
+        )
         .unwrap();
     match log4rs::init_config(config) {
         Ok(_) => Ok(log_path),
@@ -439,9 +483,13 @@ pub fn create_logger(filename: &str,
 ///
 /// Full path to opened log file on disk
 #[cfg(not(feature = "logging"))]
-pub fn create_logger(_filename: &str,
-                     _dir: LogDir,
-                     _max_size_mb: u32,
-                     _backup_count: u32) -> Result<String, FruitError> {
-    Err(FruitError::GeneralError("Must recompile with 'logging' feature to use logger.".to_string()))
+pub fn create_logger(
+    _filename: &str,
+    _dir: LogDir,
+    _max_size_mb: u32,
+    _backup_count: u32,
+) -> Result<String, FruitError> {
+    Err(FruitError::GeneralError(
+        "Must recompile with 'logging' feature to use logger.".to_string(),
+    ))
 }

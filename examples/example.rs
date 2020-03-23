@@ -1,50 +1,57 @@
 extern crate fruitbasket;
 use fruitbasket::ActivationPolicy;
-use fruitbasket::Trampoline;
 use fruitbasket::FruitApp;
+use fruitbasket::FruitError;
 use fruitbasket::InstallDir;
 use fruitbasket::RunPeriod;
-use fruitbasket::FruitError;
-use std::time::Duration;
+use fruitbasket::Trampoline;
 use std::path::PathBuf;
+use std::time::Duration;
 
 #[macro_use]
 extern crate log;
 
 fn main() {
-    let _ = fruitbasket::create_logger(".fruitbasket.log", fruitbasket::LogDir::Home, 5, 2).unwrap();
+    let _ =
+        fruitbasket::create_logger(".fruitbasket.log", fruitbasket::LogDir::Home, 5, 2).unwrap();
 
     // Find the icon file from the Cargo project dir
     let icon = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("examples").join("icon.png");
+        .join("examples")
+        .join("icon.png");
 
     // Re-launch self in an app bundle if not already running from one.
     info!("Executable must run from App bundle.  Let's try:");
-    let mut app = match Trampoline::new("fruitbasket", "fruitbasket", "com.trevorbentley.fruitbasket")
-        .version("2.1.3")
-        .icon("fruitbasket.icns")
-        .plist_key("CFBundleSpokenName","\"fruit basket\"")
-        .plist_keys(&vec![
-            ("LSMinimumSystemVersion", "10.12.0"),
-            ("LSBackgroundOnly", "1"),
-        ])
-        .resource(icon.to_str().unwrap())
-        .build(InstallDir::Temp) {
-            Err(FruitError::UnsupportedPlatform(_)) => {
-                info!("This is not a Mac.  App bundling is not supported.");
-                info!("It is still safe to use FruitApp::new(), though the dummy app will do nothing.");
-                FruitApp::new()
-            },
-            Err(FruitError::IOError(e)) => {
-                info!("IO error! {}", e);
-                std::process::exit(1);
-            },
-            Err(FruitError::GeneralError(e)) => {
-                info!("General error! {}", e);
-                std::process::exit(1);
-            },
-            Ok(app) => app,
-        };
+    let mut app = match Trampoline::new(
+        "fruitbasket",
+        "fruitbasket",
+        "com.trevorbentley.fruitbasket",
+    )
+    .version("2.1.3")
+    .icon("fruitbasket.icns")
+    .plist_key("CFBundleSpokenName", "\"fruit basket\"")
+    .plist_keys(&vec![
+        ("LSMinimumSystemVersion", "10.12.0"),
+        ("LSBackgroundOnly", "1"),
+    ])
+    .resource(icon.to_str().unwrap())
+    .build(InstallDir::Temp)
+    {
+        Err(FruitError::UnsupportedPlatform(_)) => {
+            info!("This is not a Mac.  App bundling is not supported.");
+            info!("It is still safe to use FruitApp::new(), though the dummy app will do nothing.");
+            FruitApp::new()
+        }
+        Err(FruitError::IOError(e)) => {
+            info!("IO error! {}", e);
+            std::process::exit(1);
+        }
+        Err(FruitError::GeneralError(e)) => {
+            info!("General error! {}", e);
+            std::process::exit(1);
+        }
+        Ok(app) => app,
+    };
 
     // App is guaranteed to be running in a bundle now!
 
