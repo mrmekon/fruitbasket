@@ -465,10 +465,10 @@ impl Trampoline {
 
             // Mandatory fields
             write!(&mut f, "{{\n")?;
-            write!(&mut f, "  CFBundleName = {};\n", self.name)?;
-            write!(&mut f, "  CFBundleDisplayName = {};\n", self.name)?;
+            write!(&mut f, "  CFBundleName = \"{}\";\n", self.name)?;
+            write!(&mut f, "  CFBundleDisplayName = \"{}\";\n", self.name)?;
             write!(&mut f, "  CFBundleIdentifier = \"{}\";\n", self.ident)?;
-            write!(&mut f, "  CFBundleExecutable = {};\n", self.exe)?;
+            write!(&mut f, "  CFBundleExecutable = \"{}\";\n", self.exe)?;
             write!(&mut f, "  CFBundleIconFile = \"{}\";\n", self.icon)?;
             write!(&mut f, "  CFBundleVersion = \"{}\";\n", self.version)?;
 
