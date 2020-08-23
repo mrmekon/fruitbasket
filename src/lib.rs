@@ -227,7 +227,12 @@ impl Trampoline {
     /// Docs in OS X build.
     pub fn resources(&mut self, _files: &Vec<&str>) -> &mut Self{ self }
     /// Docs in OS X build.
-    pub fn build(&mut self, _dir: InstallDir) -> Result<FruitApp, FruitError> {
+    pub fn build(&mut self, dir: InstallDir) -> Result<FruitApp, FruitError> {
+        self.self_bundle(dir)?;
+        unreachable!()
+    }
+    /// Docs in OS X build.
+    pub fn self_bundle(&mut self, _dir: InstallDir) -> Result<(), FruitError> {
         Err(FruitError::UnsupportedPlatform("fruitbasket disabled or not supported on this platform.".to_string()))
     }
     /// Docs in OS X build.
