@@ -40,22 +40,22 @@
 #![allow(deprecated)]
 
 use std;
-use std::thread;
-use std::time::Duration;
+use std::cell::Cell;
+use std::collections::HashMap;
+use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
-use std::io::Write;
-use std::cell::Cell;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
-use std::collections::HashMap;
+use std::thread;
+use std::time::Duration;
 
-use super::FruitError;
 use super::ActivationPolicy;
-use super::RunPeriod;
-use super::InstallDir;
+use super::FruitError;
 use super::FruitStopper;
+use super::InstallDir;
+use super::RunPeriod;
 use super::DEFAULT_PLIST;
 use super::FORBIDDEN_PLIST;
 
@@ -64,21 +64,20 @@ extern crate time;
 extern crate dirs;
 
 extern crate objc;
-use objc::runtime::Object;
 use objc::runtime::Class;
+use objc::runtime::Object;
 
 extern crate objc_id;
 use self::objc_id::Id;
-use self::objc_id::WeakId;
 use self::objc_id::Shared;
+use self::objc_id::WeakId;
 
 extern crate objc_foundation;
-use std::sync::{Once, ONCE_INIT};
-use objc::Message;
-use objc::declare::ClassDecl;
-use objc::runtime::{Sel};
 use self::objc_foundation::{INSObject, NSObject};
-
+use objc::declare::ClassDecl;
+use objc::runtime::Sel;
+use objc::Message;
+use std::sync::{Once, ONCE_INIT};
 
 #[allow(non_upper_case_globals)]
 const nil: *mut Object = 0 as *mut Object;
@@ -87,7 +86,7 @@ const nil: *mut Object = 0 as *mut Object;
 #[link(name = "CoreFoundation", kind = "framework")]
 #[link(name = "ApplicationServices", kind = "framework")]
 #[link(name = "AppKit", kind = "framework")]
-extern {}
+extern "C" {}
 
 /// Main interface for controlling and interacting with the AppKit app
 ///
@@ -205,7 +204,7 @@ pub struct Trampoline {
     ident: String,
     icon: String,
     version: String,
-    keys: Vec<(String,String)>,
+    keys: Vec<(String, String)>,
     plist_raw_strings: Vec<String>,
     resources: Vec<String>,
 }
@@ -245,8 +244,7 @@ impl Trampoline {
             exe: exe.to_string(),
             ident: ident.to_string(),
             version: "1.0.0".to_string(),
-            ..
-            Default::default()
+            ..Default::default()
         }
     }
     /// Set name of application.  Same as provided to `new()`.
@@ -324,7 +322,7 @@ impl Trampoline {
     ///
     /// See documentation of [plist_key()](Trampoline::plist_key).  This function does the same, but
     /// allows specifying more than one key/value pair at a time.
-    pub fn plist_keys(&mut self, pairs: &Vec<(&str,&str)>) -> &mut Self {
+    pub fn plist_keys(&mut self, pairs: &Vec<(&str, &str)>) -> &mut Self {
         for &(ref key, ref value) in pairs {
             self.keys.push((key.to_string(), value.to_string()));
         }
@@ -367,7 +365,7 @@ impl Trampoline {
     ///
     /// See documentation of [resource()](Trampoline::resource).  This function does the same, but
     /// allows specifying more than one resource at a time.
-    pub fn resources(&mut self, files: &Vec<&str>) -> &mut Self{
+    pub fn resources(&mut self, files: &Vec<&str>) -> &mut Self {
         for file in files {
             self.resources.push(file.to_string());
         }
@@ -480,7 +478,7 @@ impl Trampoline {
             }
 
             // Default fields (if user didn't override)
-            let keys: Vec<&str> = self.keys.iter().map(|x| {x.0.as_ref()}).collect();
+            let keys: Vec<&str> = self.keys.iter().map(|x| x.0.as_ref()).collect();
             for &(ref key, ref val) in DEFAULT_PLIST {
                 if !keys.contains(key) {
                     write!(&mut f, "  {} = {};\n", key, val)?;
@@ -505,7 +503,7 @@ impl Trampoline {
                                            initWithBytes:app.as_ptr()
                                            length:app.len()
                                            encoding: 4]; // UTF8_ENCODING
-            let _:() = msg_send![wspace, launchApplication: s];
+            let _: () = msg_send![wspace, launchApplication: s];
 
             // Note: launchedApplication doesn't return until the child process
             // calls [NSApplication sharedApplication].
@@ -526,7 +524,7 @@ impl FruitApp {
     ///
     /// A newly allocated FruitApp for managing the app
     pub fn new() -> FruitApp {
-        let (tx,rx) = channel::<()>();
+        let (tx, rx) = channel::<()>();
         unsafe {
             let cls = Class::get("NSApplication").unwrap();
             let app: *mut Object = msg_send![cls, sharedApplication];
@@ -546,7 +544,7 @@ impl FruitApp {
                 map: HashMap::new(),
             });
             let ptr: u64 = &*rustobjc as *const ObjcWrapper as u64;
-            let _:() = msg_send![rustobjc.objc, setRustWrapper: ptr];
+            let _: () = msg_send![rustobjc.objc, setRustWrapper: ptr];
             FruitApp {
                 app: app,
                 pool: Cell::new(pool),
@@ -586,7 +584,7 @@ impl FruitApp {
             let cls = Class::get("NSAppleEventManager").unwrap();
             let manager: *mut Object = msg_send![cls, sharedAppleEventManager];
             let objc = (*self.objc).take();
-            let _:() = msg_send![manager,
+            let _: () = msg_send![manager,
                               setEventHandler: objc
                               andSelector: sel!(handleEvent:withReplyEvent:)
                               forEventClass: class
@@ -602,7 +600,7 @@ impl FruitApp {
             ActivationPolicy::Prohibited => 2,
         };
         unsafe {
-            let _:() = msg_send![self.app, setActivationPolicy: policy_int];
+            let _: () = msg_send![self.app, setActivationPolicy: policy_int];
         }
     }
 
@@ -625,7 +623,7 @@ impl FruitApp {
         unsafe {
             let cls = objc::runtime::Class::get("NSApplication").unwrap();
             let app: *mut objc::runtime::Object = msg_send![cls, sharedApplication];
-            let _:() = msg_send![app, terminate: exit_code];
+            let _: () = msg_send![app, terminate: exit_code];
         }
     }
 
@@ -661,7 +659,7 @@ impl FruitApp {
     /// # Returns
     ///
     /// Ok on natural end, Err if stopped by a Stopper.
-    pub fn run(&mut self, period: RunPeriod) -> Result<(),()>{
+    pub fn run(&mut self, period: RunPeriod) -> Result<(), ()> {
         let start = time::now_utc().to_timespec();
         loop {
             if self.rx.try_recv().is_ok() {
@@ -673,14 +671,14 @@ impl FruitApp {
                     let cls = objc::runtime::Class::get("NSApplication").unwrap();
                     let app: *mut objc::runtime::Object = msg_send![cls, sharedApplication];
                     let objc = (*self.objc).take();
-                    let _:() = msg_send![app, setDelegate: objc];
-                    let _:() = msg_send![self.app, finishLaunching];
+                    let _: () = msg_send![app, setDelegate: objc];
+                    let _: () = msg_send![self.app, finishLaunching];
                 }
                 // Create a new release pool every once in a while, draining the old one
                 if run_count % 100 == 0 {
                     let old_pool = self.pool.get();
                     if run_count != 0 {
-                        let _:() = msg_send![old_pool, drain];
+                        let _: () = msg_send![old_pool, drain];
                     }
                     let cls = Class::get("NSAutoreleasePool").unwrap();
                     let pool: *mut Object = msg_send![cls, alloc];
@@ -693,8 +691,8 @@ impl FruitApp {
                                                    untilDate: nil
                                                    inMode: mode
                                                    dequeue: 1];
-                let _:() = msg_send![self.app, sendEvent: event];
-                let _:() = msg_send![self.app, updateWindows];
+                let _: () = msg_send![self.app, sendEvent: event];
+                let _: () = msg_send![self.app, updateWindows];
                 self.run_count.set(run_count + 1);
             }
             if period == RunPeriod::Once {
@@ -727,7 +725,7 @@ impl FruitApp {
     /// cloned infinite times..
     pub fn stopper(&self) -> FruitStopper {
         FruitStopper {
-            tx: self.tx.clone()
+            tx: self.tx.clone(),
         }
     }
 
@@ -764,11 +762,13 @@ impl FruitApp {
             let ini: *mut Object = msg_send![bundle,
                                              pathForResource:objc_name
                                              ofType:objc_ext];
-            let _:() = msg_send![objc_name, release];
-            let _:() = msg_send![objc_ext, release];
+            let _: () = msg_send![objc_name, release];
+            let _: () = msg_send![objc_ext, release];
             let cstr: *const i8 = msg_send![ini, UTF8String];
             if cstr != std::ptr::null() {
-                let rstr = std::ffi::CStr::from_ptr(cstr).to_string_lossy().into_owned();
+                let rstr = std::ffi::CStr::from_ptr(cstr)
+                    .to_string_lossy()
+                    .into_owned();
                 return Some(rstr);
             }
             None
@@ -794,7 +794,9 @@ pub fn parse_url_event(event: *mut Object) -> String {
         let nsstring: *mut Object = msg_send![subevent, stringValue];
         let cstr: *const i8 = msg_send![nsstring, UTF8String];
         if cstr != std::ptr::null() {
-            let rstr = std::ffi::CStr::from_ptr(cstr).to_string_lossy().into_owned();
+            let rstr = std::ffi::CStr::from_ptr(cstr)
+                .to_string_lossy()
+                .into_owned();
             return rstr;
         }
     }
@@ -814,7 +816,7 @@ pub fn parse_url_event(event: *mut Object) -> String {
 ///
 enum ObjcSubclass {}
 
-unsafe impl Message for ObjcSubclass { }
+unsafe impl Message for ObjcSubclass {}
 
 static OBJC_SUBCLASS_REGISTER_CLASS: Once = ONCE_INIT;
 
@@ -840,25 +842,31 @@ impl INSObject for ObjcSubclass {
             decl.add_ivar::<u64>("_rustwrapper");
 
             /// Callback for events from Apple's NSAppleEventManager
-            extern fn objc_apple_event(this: &Object, _cmd: Sel, event: u64, _reply: u64) {
+            extern "C" fn objc_apple_event(this: &Object, _cmd: Sel, event: u64, _reply: u64) {
                 let ptr: u64 = unsafe { *this.get_ivar("_rustwrapper") };
-                ObjcSubclass::dispatch_cb(ptr,
-                                          FruitCallbackKey::Method("handleEvent:withReplyEvent:"),
-                                          event as *mut Object);
+                ObjcSubclass::dispatch_cb(
+                    ptr,
+                    FruitCallbackKey::Method("handleEvent:withReplyEvent:"),
+                    event as *mut Object,
+                );
             }
             /// NSApplication delegate callback
-            extern fn objc_did_finish(this: &Object, _cmd: Sel, event: u64) {
+            extern "C" fn objc_did_finish(this: &Object, _cmd: Sel, event: u64) {
                 let ptr: u64 = unsafe { *this.get_ivar("_rustwrapper") };
-                ObjcSubclass::dispatch_cb(ptr,
-                                          FruitCallbackKey::Method("applicationDidFinishLaunching:"),
-                                          event as *mut Object);
+                ObjcSubclass::dispatch_cb(
+                    ptr,
+                    FruitCallbackKey::Method("applicationDidFinishLaunching:"),
+                    event as *mut Object,
+                );
             }
             /// NSApplication delegate callback
-            extern fn objc_will_finish(this: &Object, _cmd: Sel, event: u64) {
+            extern "C" fn objc_will_finish(this: &Object, _cmd: Sel, event: u64) {
                 let ptr: u64 = unsafe { *this.get_ivar("_rustwrapper") };
-                ObjcSubclass::dispatch_cb(ptr,
-                                          FruitCallbackKey::Method("applicationWillFinishLaunching:"),
-                                          event as *mut Object);
+                ObjcSubclass::dispatch_cb(
+                    ptr,
+                    FruitCallbackKey::Method("applicationWillFinishLaunching:"),
+                    event as *mut Object,
+                );
             }
             /// Register the Rust ObjcWrapper instance that wraps this object
             ///
@@ -869,18 +877,20 @@ impl INSObject for ObjcSubclass {
             /// in memory.  The address of this wrapping struct is given to this
             /// object by casting the Box into a raw pointer, and then casting
             /// that into a u64, which is stored here.
-            extern fn objc_set_rust_wrapper(this: &mut Object, _cmd: Sel, ptr: u64) {
-                unsafe {this.set_ivar("_rustwrapper", ptr);}
+            extern "C" fn objc_set_rust_wrapper(this: &mut Object, _cmd: Sel, ptr: u64) {
+                unsafe {
+                    this.set_ivar("_rustwrapper", ptr);
+                }
             }
             unsafe {
                 // Register all of the above handlers as true ObjC selectors:
-                let f: extern fn(&mut Object, Sel, u64) = objc_set_rust_wrapper;
+                let f: extern "C" fn(&mut Object, Sel, u64) = objc_set_rust_wrapper;
                 decl.add_method(sel!(setRustWrapper:), f);
-                let f: extern fn(&Object, Sel, u64, u64) = objc_apple_event;
+                let f: extern "C" fn(&Object, Sel, u64, u64) = objc_apple_event;
                 decl.add_method(sel!(handleEvent:withReplyEvent:), f);
-                let f: extern fn(&Object, Sel, u64) = objc_did_finish;
+                let f: extern "C" fn(&Object, Sel, u64) = objc_did_finish;
                 decl.add_method(sel!(applicationDidFinishLaunching:), f);
-                let f: extern fn(&Object, Sel, u64) = objc_will_finish;
+                let f: extern "C" fn(&Object, Sel, u64) = objc_will_finish;
                 decl.add_method(sel!(applicationWillFinishLaunching:), f);
             }
 
