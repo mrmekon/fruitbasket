@@ -402,7 +402,7 @@ pub fn create_logger(filename: &str,
         .unwrap();
     match log4rs::init_config(config) {
         Ok(_) => Ok(log_path),
-        Err(e) => Err(e.description().to_string()),
+        Err(e) => Err(e.to_string()),
     }
 }
 /// Enable logging to rolling log files with Rust `log` library
