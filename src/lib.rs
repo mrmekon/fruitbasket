@@ -273,7 +273,7 @@ impl std::fmt::Display for FruitError {
 }
 impl From<std::io::Error> for FruitError {
     fn from(error: std::io::Error) -> Self {
-        FruitError::IOError(error.description().to_owned())
+        FruitError::IOError(error.to_string())
     }
 }
 impl Error for FruitError {
