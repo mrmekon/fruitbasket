@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["fruitbasket"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/marker/trait.StructuralEq.html\" title=\"trait core::marker::StructuralEq\">StructuralEq</a> for <a class=\"enum\" href=\"fruitbasket/enum.FruitCallbackKey.html\" title=\"enum fruitbasket::FruitCallbackKey\">FruitCallbackKey</a>","synthetic":false,"types":["fruitbasket::osx::FruitCallbackKey"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

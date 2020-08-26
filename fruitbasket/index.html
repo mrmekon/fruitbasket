@@ -1,0 +1,58 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="API documentation for the Rust `fruitbasket` crate."><meta name="keywords" content="rust, rustlang, rust-lang, fruitbasket"><title>fruitbasket - Rust</title><link rel="stylesheet" type="text/css" href="../normalize.css"><link rel="stylesheet" type="text/css" href="../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../dark.css"><link rel="stylesheet" type="text/css" href="../light.css" id="themeStyle"><script src="../storage.js"></script><noscript><link rel="stylesheet" href="../noscript.css"></noscript><link rel="shortcut icon" href="../favicon.ico"><style type="text/css">#crate-search{background-image:url("../down-arrow.svg");}</style></head><body class="rustdoc mod"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../fruitbasket/index.html'><div class='logo-container'><img src='../rust-logo.png' alt='logo'></div></a><p class='location'>Crate fruitbasket</p><div class="sidebar-elems"><a id='all-types' href='all.html'><p>See all fruitbasket's items</p></a><div class="block items"><ul><li><a href="#structs">Structs</a></li><li><a href="#enums">Enums</a></li><li><a href="#constants">Constants</a></li><li><a href="#functions">Functions</a></li><li><a href="#types">Type Definitions</a></li></ul></div><p class='location'></p><script>window.sidebarCurrent = {name: 'fruitbasket', ty: 'mod', relpath: '../'};</script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><a id="settings-menu" href="../settings.html"><img src="../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class='fqn'><span class='out-of-band'><span id='render-detail'><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class='inner'>&#x2212;</span>]</a></span><a class='srclink' href='../src/fruitbasket/lib.rs.html#1-452' title='goto source code'>[src]</a></span><span class='in-band'>Crate <a class="mod" href=''>fruitbasket</a></span></h1><div class='docblock'><p>fruitbasket - Framework for running Rust programs in a Mac 'app bundle' environment.</p>
+<p>fruitbasket provides two different (but related) services for helping you run your
+Rust binaries as native AppKit/Cocoa applications on Mac OS X:</p>
+<ul>
+<li>
+<p>App lifecycle and environment API - fruitbasket provides an API to initialize the
+AppKit application environment (NSApplication), to pump the main application loop
+and dispatch Apple events in a non-blocking way, to terminate the application, to
+access resources in the app bundle, and various other tasks frequently needed by
+Mac applications.</p>
+</li>
+<li>
+<p>Self-bundling app 'trampoline' - fruitbasket provides a 'trampoline' to
+automatically bundle a standalone binary as a Mac application in a <code>.app</code> bundle
+at runtime.  This allows access to features that require running from a bundle (
+such as XPC services), self-installing into the Applications folder, registering
+your app with the system as a document type or URL handler, and various other
+features that are only available to bundled apps with unique identifiers.
+Self-bundling and relaunching itself (the &quot;trampoline&quot; behavior) allows your app
+to get the features of app bundles, but still be launched in the standard Rust
+ways (such as <code>cargo run</code>).</p>
+</li>
+</ul>
+<p>The primary goal of fruitbasket is to make it reasonably easy to develop native
+Mac GUI applications with the standard Apple AppKit/Cocoa/Foundation frameworks
+in pure Rust by pushing all of the Apple and Objective-C runtime logic into
+dedicated libraries, isolating the logic of a Rust binary application from the
+unsafe platform code.  As the ecosystem of Mac libraries for Rust grows, you
+should be able to mix-and-match the libraries your application needs, pump the
+event loop with fruitbasket, and never worry about Objective-C in your application.</p>
+<h1 id="getting-started" class="section-header"><a href="#getting-started">Getting Started</a></h1>
+<p>You likely want to create either a <a href="struct.Trampoline.html">Trampoline</a> or a
+<a href="struct.FruitApp.html">FruitApp</a> right after your Rust application starts.
+If uncertain, use a <code>Trampoline</code>.  You can hit very strange behavior when running
+Cocoa apps outside of an app bundle.</p>
+</div><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+<table><tr class='module-item'><td><a class="struct" href="struct.FruitApp.html" title='fruitbasket::FruitApp struct'>FruitApp</a></td><td class='docblock-short'><p>Main interface for controlling and interacting with the AppKit app</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.FruitStopper.html" title='fruitbasket::FruitStopper struct'>FruitStopper</a></td><td class='docblock-short'><p>An opaque, thread-safe object that can interrupt the run loop.</p>
+</td></tr><tr class='module-item'><td><a class="struct" href="struct.Trampoline.html" title='fruitbasket::Trampoline struct'>Trampoline</a></td><td class='docblock-short'><p>API to move the executable into a Mac app bundle and relaunch (if necessary)</p>
+</td></tr></table><h2 id='enums' class='section-header'><a href="#enums">Enums</a></h2>
+<table><tr class='module-item'><td><a class="enum" href="enum.ActivationPolicy.html" title='fruitbasket::ActivationPolicy enum'>ActivationPolicy</a></td><td class='docblock-short'><p>Policies controlling how a Mac application's UI is interacted with</p>
+</td></tr><tr class='module-item'><td><a class="enum" href="enum.FruitCallbackKey.html" title='fruitbasket::FruitCallbackKey enum'>FruitCallbackKey</a></td><td class='docblock-short'><p>Key into the ObjC callback hash map</p>
+</td></tr><tr class='module-item'><td><a class="enum" href="enum.FruitError.html" title='fruitbasket::FruitError enum'>FruitError</a></td><td class='docblock-short'><p>Class for errors generated by fruitbasket.  Dereferences to a String.</p>
+</td></tr><tr class='module-item'><td><a class="enum" href="enum.InstallDir.html" title='fruitbasket::InstallDir enum'>InstallDir</a></td><td class='docblock-short'><p>Options for where to save generated app bundle</p>
+</td></tr><tr class='module-item'><td><a class="enum" href="enum.LogDir.html" title='fruitbasket::LogDir enum'>LogDir</a></td><td class='docblock-short'><p>Options for where to save logging output generated by fruitbasket</p>
+</td></tr><tr class='module-item'><td><a class="enum" href="enum.RunPeriod.html" title='fruitbasket::RunPeriod enum'>RunPeriod</a></td><td class='docblock-short'><p>Options for how long to run the event loop on each call</p>
+</td></tr></table><h2 id='constants' class='section-header'><a href="#constants">Constants</a></h2>
+<table><tr class='module-item'><td><a class="constant" href="constant.DEFAULT_PLIST.html" title='fruitbasket::DEFAULT_PLIST constant'>DEFAULT_PLIST</a></td><td class='docblock-short'><p>Info.plist entries that have default values, but can be overridden</p>
+</td></tr><tr class='module-item'><td><a class="constant" href="constant.FORBIDDEN_PLIST.html" title='fruitbasket::FORBIDDEN_PLIST constant'>FORBIDDEN_PLIST</a></td><td class='docblock-short'><p>Info.plist entries that are set, and cannot be overridden</p>
+</td></tr><tr class='module-item'><td><a class="constant" href="constant.kAEGetURL.html" title='fruitbasket::kAEGetURL constant'>kAEGetURL</a></td><td class='docblock-short'><p>Apple kAEGetURL constant</p>
+</td></tr><tr class='module-item'><td><a class="constant" href="constant.kInternetEventClass.html" title='fruitbasket::kInternetEventClass constant'>kInternetEventClass</a></td><td class='docblock-short'><p>Apple kInternetEventClass constant</p>
+</td></tr><tr class='module-item'><td><a class="constant" href="constant.keyDirectObject.html" title='fruitbasket::keyDirectObject constant'>keyDirectObject</a></td><td class='docblock-short'><p>Apple keyDirectObject constant</p>
+</td></tr></table><h2 id='functions' class='section-header'><a href="#functions">Functions</a></h2>
+<table><tr class='module-item'><td><a class="fn" href="fn.create_logger.html" title='fruitbasket::create_logger fn'>create_logger</a></td><td class='docblock-short'><p>Enable logging to rolling log files with Rust <code>log</code> library</p>
+</td></tr><tr class='module-item'><td><a class="fn" href="fn.parse_url_event.html" title='fruitbasket::parse_url_event fn'>parse_url_event</a></td><td class='docblock-short'><p>Parse an Apple URL event into a URL string</p>
+</td></tr></table><h2 id='types' class='section-header'><a href="#types">Type Definitions</a></h2>
+<table><tr class='module-item'><td><a class="type" href="type.FruitObjcCallback.html" title='fruitbasket::FruitObjcCallback type'>FruitObjcCallback</a></td><td class='docblock-short'><p>A boxed Fn type for receiving Rust callbacks from ObjC events</p>
+</td></tr></table></section><section id="search" class="content hidden"></section><section class="footer"></section><script>window.rootPath = "../";window.currentCrate = "fruitbasket";</script><script src="../aliases.js"></script><script src="../main.js"></script><script defer src="../search-index.js"></script></body></html>
