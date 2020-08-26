@@ -278,7 +278,7 @@ impl std::fmt::Display for FruitError {
 }
 impl From<std::io::Error> for FruitError {
     fn from(error: std::io::Error) -> Self {
-        FruitError::IOError(error.description().to_owned())
+        FruitError::IOError(error.to_string())
     }
 }
 impl Error for FruitError {
@@ -407,7 +407,7 @@ pub fn create_logger(filename: &str,
         .unwrap();
     match log4rs::init_config(config) {
         Ok(_) => Ok(log_path),
-        Err(e) => Err(e.description().to_string()),
+        Err(e) => Err(e.to_string()),
     }
 }
 /// Enable logging to rolling log files with Rust `log` library
