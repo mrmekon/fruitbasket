@@ -421,7 +421,11 @@ impl Trampoline {
             ident != nil
         }
     }
-    fn self_bundle(&self, dir: InstallDir) -> Result<(), FruitError> {
+    /// Same as `build`, but does not construct a FruitApp if successful.
+    ///
+    /// Useful if you'd like to use a GUI library, such as libui, and don't
+    /// want fruitbasket to try to initialize anything for you. Bundling only.
+    pub fn self_bundle(&self, dir: InstallDir) -> Result<(), FruitError> {
         unsafe {
             if Self::is_bundled() {
                 return Ok(());
