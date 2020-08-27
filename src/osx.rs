@@ -360,7 +360,7 @@ impl Trampoline {
     ///
     /// Applications that wish to indicate that they *do* support Retina
     /// displays have to specify two properties in their Info.plist:
-    /// - Set `NSPrincipleClass` to something. (`"NSApplication"` is a useful
+    /// - Set `NSPrincipalClass` to something. (`"NSApplication"` is a useful
     ///   default, but it's unknown what the significance of this property is.
     ///   fruitbasket uses `"NSApplication"`.)
     /// - Set `NSHighResolutionCapable` to `True`.
