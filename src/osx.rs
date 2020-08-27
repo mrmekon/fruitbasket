@@ -377,7 +377,7 @@ impl Trampoline {
     ///
     /// Older versions of fruitbasket did not apply these changes by default,
     /// which meant in the best case the developer had to look online for a
-    /// solution, and in the worst case apps built during fruitbasket ran in
+    /// solution, and in the worst case apps built using fruitbasket ran in
     /// low resolution (ouch!). It is my hope that this new default will help
     /// both new and experienced developers alike, even though it is a somewhat
     /// simple change.
