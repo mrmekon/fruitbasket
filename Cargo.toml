@@ -39,8 +39,6 @@ features = ["exception"]
 
 [package.metadata.release]
 sign-commit = false
-upload-doc = true
 pre-release-commit-message = "Release {{version}}"
 dev-version-ext = "rc"
 tag-message = "Release {{version}}"
-doc-commit-message = "Release {{version}}"
