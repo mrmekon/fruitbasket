@@ -221,6 +221,8 @@ impl Trampoline {
     /// Docs in OS X build.
     pub fn plist_keys(&mut self, _pairs: &Vec<(&str,&str)>) -> &mut Self { self }
     /// Docs in OS X build.
+    pub fn retina(&mut self, _doit: bool) -> &mut Self { self }
+    /// Docs in OS X build.
     pub fn plist_raw_string(&mut self, _s: String) -> &mut Self { self }
     /// Docs in OS X build.
     pub fn resource(&mut self, _file: &str) -> &mut Self { self }

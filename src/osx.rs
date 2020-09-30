@@ -208,6 +208,7 @@ pub struct Trampoline {
     keys: Vec<(String,String)>,
     plist_raw_strings: Vec<String>,
     resources: Vec<String>,
+    hidpi: bool,
 }
 
 impl Trampoline {
@@ -245,6 +246,7 @@ impl Trampoline {
             exe: exe.to_string(),
             ident: ident.to_string(),
             version: "1.0.0".to_string(),
+            hidpi: true,
             ..
             Default::default()
         }
@@ -328,6 +330,59 @@ impl Trampoline {
         for &(ref key, ref value) in pairs {
             self.keys.push((key.to_string(), value.to_string()));
         }
+        self
+    }
+    /// Sets whether fruitbasket should add properties to the generated plist
+    /// to tell macOS that this application supports high resolution displays.
+    ///
+    /// This option is true by default. A bit of backstory follows.
+    ///
+    /// ---
+    ///
+    /// macOS, by default, runs apps in a low-resolution mode if they are
+    /// in a bundle that does not specify that it supports Retina displays. This
+    /// causes them to look blurry on Retina displays, not crisp like the rest
+    /// of macOS.
+    ///
+    /// You may not have noticed this behavior when running GUI applications as
+    /// bare binaries, where it does not apply (macOS does not run binaries in
+    /// low-resolution mode). However, the Trampoline is different because it
+    /// automatically bundles the binary, which opens up the application to this
+    /// kind of legacy behavior.
+    ///
+    /// Historically, it was done for backwards compatibility, because when the
+    /// Retina screen came out in 2012, not all applications supported it.
+    /// Indeed, some programs even today don't support it either, which is why
+    /// this behavior remains. However, most GUI facilities like Qt, GTK and
+    /// libui support Retina just fine, and don't need macOS to sandbox them
+    /// into this low resolution mode. (libui doesn't even need to do anything
+    /// special; they use AppKit directly, which has always supported Retina.)
+    ///
+    /// Applications that wish to indicate that they *do* support Retina
+    /// displays have to specify two properties in their Info.plist:
+    /// - Set `NSPrincipalClass` to something. (`"NSApplication"` is a useful
+    ///   default, but it's unknown what the significance of this property is.
+    ///   fruitbasket uses `"NSApplication"`.)
+    /// - Set `NSHighResolutionCapable` to `True`.
+    ///
+    /// After this is done, macOS will run the app at full resolution and trust
+    /// it to scale its UI to match the scale factor of the resolution being
+    /// used. On most displays, it is 2 by default, but macOS supports both
+    /// larger and also non-integer scale factors.
+    ///
+    /// Sometimes you have to do this manually, such as when you are rendering
+    /// into a framebuffer, and sometimes you don't, like when you are using a
+    /// GUI toolkit. Usually, programmers can expect their libraries to support
+    /// this natively and that is why this option is enabled by default.
+    ///
+    /// Older versions of fruitbasket did not apply these changes by default,
+    /// which meant in the best case the developer had to look online for a
+    /// solution, and in the worst case apps built using fruitbasket ran in
+    /// low resolution (ouch!). It is my hope that this new default will help
+    /// both new and experienced developers alike, even though it is a somewhat
+    /// simple change.
+    pub fn retina(&mut self, doit: bool) -> &mut Self {
+        self.hidpi = doit;
         self
     }
     /// Add a 'raw', preformatted string to Info.plist
@@ -475,6 +530,12 @@ impl Trampoline {
             write!(&mut f, "  CFBundleExecutable = \"{}\";\n", self.exe)?;
             write!(&mut f, "  CFBundleIconFile = \"{}\";\n", self.icon)?;
             write!(&mut f, "  CFBundleVersion = \"{}\";\n", self.version)?;
+
+            // HiDPI fields
+            if self.hidpi {
+                write!(&mut f, "  NSPrincipalClass = \"NSApplication\";\n")?;
+                write!(&mut f, "  NSHighResolutionCapable = True;\n")?;
+            }
 
             // User-supplied fields
             for &(ref key, ref val) in &self.keys {
