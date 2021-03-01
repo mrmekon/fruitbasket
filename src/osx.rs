@@ -857,13 +857,22 @@ pub fn parse_url_event(event: *mut Object) -> String {
         }
         let subevent: *mut Object = msg_send![event, paramDescriptorForKeyword: ::keyDirectObject];
         let nsstring: *mut Object = msg_send![subevent, stringValue];
+        nsstring_to_string(nsstring)
+    }
+}
+
+/// Convert an NSString to a Rust `String`
+pub fn nsstring_to_string(nsstring: *mut Object) -> String {
+    unsafe {
         let cstr: *const i8 = msg_send![nsstring, UTF8String];
         if cstr != std::ptr::null() {
-            let rstr = std::ffi::CStr::from_ptr(cstr).to_string_lossy().into_owned();
-            return rstr;
+            std::ffi::CStr::from_ptr(cstr)
+                .to_string_lossy()
+                .into_owned()
+        } else {
+            "".into()
         }
     }
-    "".into()
 }
 
 /// ObjcSubclass is a subclass of the objective-c NSObject base class.

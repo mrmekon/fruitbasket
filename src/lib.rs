@@ -120,6 +120,9 @@ pub use osx::FruitCallbackKey;
 #[cfg(all(target_os = "macos", not(feature="dummy")))]
 pub use osx::parse_url_event;
 
+#[cfg(all(target_os = "macos", not(feature="dummy")))]
+pub use osx::nsstring_to_string;
+
 #[cfg(any(not(target_os = "macos"), feature="dummy"))]
 /// Docs in OS X build.
 pub enum FruitCallbackKey {
