@@ -102,7 +102,19 @@ CFBundleURLTypes = ( {
                               stopper.stop();
                           }));
 
-    // Run 'forever', until the URL callback fires
+    let stopper = app.stopper();
+    app.register_callback(
+        FruitCallbackKey::Method("application:openFile:"),
+        Box::new(move |file| {
+            // File is a raw NSString.
+            // Fruitbasket has a converter to Rust String:
+            let file: String = fruitbasket::nsstring_to_string(file);
+            info!("Received file: {}", file);
+            stopper.stop();
+        }),
+    );
+
+    // Run 'forever', until one of the URL or file callbacks fire
     info!("Spawned process running!");
     let _ = app.run(RunPeriod::Forever);
     info!("Run loop stopped after URL callback.");
