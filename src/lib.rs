@@ -199,6 +199,12 @@ impl FruitApp {
 /// Docs in OS X build.
 pub fn parse_url_event(_event: *mut u64) -> String { "".into() }
 
+#[cfg(any(not(target_os = "macos"), feature = "dummy"))]
+/// Docs in OS X build.
+pub fn nsstring_to_string(_nsstring: *mut u64) -> String {
+    "".into()
+}
+
 /// API to move the executable into a Mac app bundle and relaunch (if necessary)
 ///
 /// Dummy implementation for non-OSX platforms.  See OS X build for proper
