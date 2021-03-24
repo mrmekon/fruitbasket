@@ -108,18 +108,18 @@ extern {}
 /// may want to consider creating your FruitApp instance from the [Trampoline](Trampoline)
 /// struct's builder instead.
 ///
-pub struct FruitApp {
+pub struct FruitApp<'a> {
     app: *mut Object,
     pool: Cell<*mut Object>,
     run_count: Cell<u64>,
     run_mode: *mut Object,
     tx: Sender<()>,
     rx: Receiver<()>,
-    objc: Box<ObjcWrapper>,
+    objc: Box<ObjcWrapper<'a>>,
 }
 
 /// A boxed Fn type for receiving Rust callbacks from ObjC events
-pub type FruitObjcCallback = Box<dyn Fn(*mut Object)>;
+pub type FruitObjcCallback<'a> = Box<dyn Fn(*mut Object) + 'a>;
 
 /// Key into the ObjC callback hash map
 ///
@@ -164,12 +164,12 @@ pub enum FruitCallbackKey {
 /// heap (i.e. in a Box).  This is because the ObjC object calls into this class
 /// via raw function pointers, and its address must not change.
 ///
-struct ObjcWrapper {
+struct ObjcWrapper<'a> {
     objc: Id<ObjcSubclass, Shared>,
-    map: HashMap<FruitCallbackKey, FruitObjcCallback>,
+    map: HashMap<FruitCallbackKey, FruitObjcCallback<'a>>,
 }
 
-impl ObjcWrapper {
+impl<'a> ObjcWrapper<'a> {
     fn take(&mut self) -> Id<ObjcSubclass, Shared> {
         let weak = WeakId::new(&self.objc);
         weak.load().unwrap()
@@ -462,7 +462,7 @@ impl Trampoline {
     /// * Result<FruitApp, _> if running in a Mac bundle (either when launched
     ///   from one initially, or successfully re-launched by `Trampoline`)
     ///   containing the initialized app environment,
-    pub fn build(&mut self, dir: InstallDir) -> Result<FruitApp, FruitError> {
+    pub fn build<'a>(&mut self, dir: InstallDir) -> Result<FruitApp<'a>, FruitError> {
         self.self_bundle(dir)?; // terminates this process if not bundled
         info!("Process is bundled.  Continuing.");
         Ok(FruitApp::new())
@@ -580,7 +580,7 @@ impl Trampoline {
     }
 }
 
-impl FruitApp {
+impl<'a> FruitApp<'a> {
     /// Initialize the Apple app environment
     ///
     /// Initializes the NSApplication singleton that initializes the Mac app
@@ -590,7 +590,7 @@ impl FruitApp {
     /// # Returns
     ///
     /// A newly allocated FruitApp for managing the app
-    pub fn new() -> FruitApp {
+    pub fn new() -> FruitApp<'a> {
         let (tx,rx) = channel::<()>();
         unsafe {
             let cls = Class::get("NSApplication").unwrap();
@@ -629,7 +629,7 @@ impl FruitApp {
     /// ObjCCallbackKey is used to specify the source of the callback, which
     /// must be something registered with the ObjC runtime.
     ///
-    pub fn register_callback(&mut self, key: FruitCallbackKey, cb: FruitObjcCallback) {
+    pub fn register_callback(&mut self, key: FruitCallbackKey, cb: FruitObjcCallback<'a>) {
         let _ = self.objc.map.insert(key, cb);
     }
 
