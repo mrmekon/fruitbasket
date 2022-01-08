@@ -134,7 +134,7 @@ pub enum FruitCallbackKey {
 
 #[cfg(any(not(target_os = "macos"), feature="dummy"))]
 /// Docs in OS X build.
-pub type FruitObjcCallback = Box<Fn(*mut u64)>;
+pub type FruitObjcCallback = Box<dyn Fn(*mut u64)>;
 
 /// Main interface for controlling and interacting with the AppKit app
 ///
