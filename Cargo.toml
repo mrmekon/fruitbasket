@@ -18,7 +18,7 @@ dummy = []
 [dependencies]
 time = "0.1"
 log = {version = "0.4", optional = true, default-features = false, features = ["std"] }
-dirs = "2.0"
+dirs = "4"
 
 [dependencies.log4rs]
 version = "0.8"
