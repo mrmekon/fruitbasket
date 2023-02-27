@@ -481,7 +481,6 @@ impl Trampoline {
     /// Useful if you'd like to use a GUI library, such as libui, and don't
     /// want fruitbasket to try to initialize anything for you. Bundling only.
     pub fn self_bundle(&self, dir: InstallDir) -> Result<(), FruitError> {
-        unsafe {
             if Self::is_bundled() {
                 return Ok(());
             }
@@ -508,7 +507,7 @@ impl Trampoline {
             std::fs::create_dir_all(&macos_dir)?;
             std::fs::create_dir_all(&resources_dir)?;
             info!("Copy {:?} to {:?}", src_exe, dst_exe);
-            std::fs::copy(src_exe, dst_exe)?;
+            std::fs::copy(src_exe, &dst_exe)?;
 
             for file in &self.resources {
                 let file = Path::new(file);
@@ -560,23 +559,10 @@ impl Trampoline {
             write!(&mut f, "}}\n")?;
 
             // Launch newly created bundle
-            let cls = Class::get("NSWorkspace").unwrap();
-            let wspace: *mut Object = msg_send![cls, sharedWorkspace];
-            let cls = Class::get("NSString").unwrap();
-            let app = bundle_dir.to_str().unwrap();
-            info!("Launching: {}", app);
-            let s: *mut Object = msg_send![cls, alloc];
-            let s: *mut Object = msg_send![s,
-                                           initWithBytes:app.as_ptr()
-                                           length:app.len()
-                                           encoding: 4]; // UTF8_ENCODING
-            let _:() = msg_send![wspace, launchApplication: s];
-
-            // Note: launchedApplication doesn't return until the child process
-            // calls [NSApplication sharedApplication].
-            info!("Parent process exited.");
+            info!("Launching: {}", bundle_dir.to_str().unwrap());
+            std::process::Command::new(dst_exe).spawn()?.wait()?;
+            info!("Child process exited.");
             std::process::exit(0);
-        }
     }
 }
 
