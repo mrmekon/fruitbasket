@@ -481,102 +481,88 @@ impl Trampoline {
     /// Useful if you'd like to use a GUI library, such as libui, and don't
     /// want fruitbasket to try to initialize anything for you. Bundling only.
     pub fn self_bundle(&self, dir: InstallDir) -> Result<(), FruitError> {
-        unsafe {
-            if Self::is_bundled() {
-                return Ok(());
-            }
-            info!("Process not bundled.  Self-bundling and relaunching.");
-
-            let install_dir: PathBuf = match dir {
-                InstallDir::Temp => std::env::temp_dir(),
-                InstallDir::SystemApplications => PathBuf::from("/Applications/"),
-                InstallDir::UserApplications => dirs::home_dir().unwrap().join("Applications/"),
-                InstallDir::Custom(dir) => std::fs::canonicalize(PathBuf::from(dir))?,
-            };
-            info!("Install dir: {:?}", install_dir);
-            let bundle_dir = Path::new(&install_dir).join(&format!("{}.app", self.name));
-            info!("Bundle dir: {:?}", bundle_dir);
-            let contents_dir = Path::new(&bundle_dir).join("Contents");
-            let macos_dir = contents_dir.clone().join("MacOS");
-            let resources_dir = contents_dir.clone().join("Resources");
-            let plist = contents_dir.clone().join("Info.plist");
-            let src_exe = std::env::current_exe()?;
-            info!("Current exe: {:?}", src_exe);
-            let dst_exe = macos_dir.clone().join(&self.exe);
-
-            let _ = std::fs::remove_dir_all(&bundle_dir); // ignore errors
-            std::fs::create_dir_all(&macos_dir)?;
-            std::fs::create_dir_all(&resources_dir)?;
-            info!("Copy {:?} to {:?}", src_exe, dst_exe);
-            std::fs::copy(src_exe, dst_exe)?;
-
-            for file in &self.resources {
-                let file = Path::new(file);
-                if let Some(filename) = file.file_name() {
-                    let dst = resources_dir.clone().join(filename);
-                    info!("Copy {:?} to {:?}", file, dst);
-                    std::fs::copy(file, dst)?;
-                }
-            }
-
-            // Write Info.plist
-            let mut f = std::fs::File::create(&plist)?;
-
-            // Mandatory fields
-            write!(&mut f, "{{\n")?;
-            write!(&mut f, "  CFBundleName = \"{}\";\n", self.name)?;
-            write!(&mut f, "  CFBundleDisplayName = \"{}\";\n", self.name)?;
-            write!(&mut f, "  CFBundleIdentifier = \"{}\";\n", self.ident)?;
-            write!(&mut f, "  CFBundleExecutable = \"{}\";\n", self.exe)?;
-            write!(&mut f, "  CFBundleIconFile = \"{}\";\n", self.icon)?;
-            write!(&mut f, "  CFBundleVersion = \"{}\";\n", self.version)?;
-
-            // HiDPI fields
-            if self.hidpi {
-                write!(&mut f, "  NSPrincipalClass = \"NSApplication\";\n")?;
-                write!(&mut f, "  NSHighResolutionCapable = True;\n")?;
-            }
-
-            // User-supplied fields
-            for &(ref key, ref val) in &self.keys {
-                if !FORBIDDEN_PLIST.contains(&key.as_str()) {
-                    write!(&mut f, "  {} = {};\n", key, val)?;
-                }
-            }
-
-            // Default fields (if user didn't override)
-            let keys: Vec<&str> = self.keys.iter().map(|x| {x.0.as_ref()}).collect();
-            for &(ref key, ref val) in DEFAULT_PLIST {
-                if !keys.contains(key) {
-                    write!(&mut f, "  {} = {};\n", key, val)?;
-                }
-            }
-
-            // Write raw plist fields
-            for raw in &self.plist_raw_strings {
-                write!(&mut f, "{}\n", raw)?;
-            }
-
-            write!(&mut f, "}}\n")?;
-
-            // Launch newly created bundle
-            let cls = Class::get("NSWorkspace").unwrap();
-            let wspace: *mut Object = msg_send![cls, sharedWorkspace];
-            let cls = Class::get("NSString").unwrap();
-            let app = bundle_dir.to_str().unwrap();
-            info!("Launching: {}", app);
-            let s: *mut Object = msg_send![cls, alloc];
-            let s: *mut Object = msg_send![s,
-                                           initWithBytes:app.as_ptr()
-                                           length:app.len()
-                                           encoding: 4]; // UTF8_ENCODING
-            let _:() = msg_send![wspace, launchApplication: s];
-
-            // Note: launchedApplication doesn't return until the child process
-            // calls [NSApplication sharedApplication].
-            info!("Parent process exited.");
-            std::process::exit(0);
+        if Self::is_bundled() {
+            return Ok(());
         }
+        info!("Process not bundled.  Self-bundling and relaunching.");
+
+        let install_dir: PathBuf = match dir {
+            InstallDir::Temp => std::env::temp_dir(),
+            InstallDir::SystemApplications => PathBuf::from("/Applications/"),
+            InstallDir::UserApplications => dirs::home_dir().unwrap().join("Applications/"),
+            InstallDir::Custom(dir) => std::fs::canonicalize(PathBuf::from(dir))?,
+        };
+        info!("Install dir: {:?}", install_dir);
+        let bundle_dir = Path::new(&install_dir).join(&format!("{}.app", self.name));
+        info!("Bundle dir: {:?}", bundle_dir);
+        let contents_dir = Path::new(&bundle_dir).join("Contents");
+        let macos_dir = contents_dir.clone().join("MacOS");
+        let resources_dir = contents_dir.clone().join("Resources");
+        let plist = contents_dir.clone().join("Info.plist");
+        let src_exe = std::env::current_exe()?;
+        info!("Current exe: {:?}", src_exe);
+        let dst_exe = macos_dir.clone().join(&self.exe);
+
+        let _ = std::fs::remove_dir_all(&bundle_dir); // ignore errors
+        std::fs::create_dir_all(&macos_dir)?;
+        std::fs::create_dir_all(&resources_dir)?;
+        info!("Copy {:?} to {:?}", src_exe, dst_exe);
+        std::fs::copy(src_exe, &dst_exe)?;
+
+        for file in &self.resources {
+            let file = Path::new(file);
+            if let Some(filename) = file.file_name() {
+                let dst = resources_dir.clone().join(filename);
+                info!("Copy {:?} to {:?}", file, dst);
+                std::fs::copy(file, dst)?;
+            }
+        }
+
+        // Write Info.plist
+        let mut f = std::fs::File::create(&plist)?;
+
+        // Mandatory fields
+        write!(&mut f, "{{\n")?;
+        write!(&mut f, "  CFBundleName = \"{}\";\n", self.name)?;
+        write!(&mut f, "  CFBundleDisplayName = \"{}\";\n", self.name)?;
+        write!(&mut f, "  CFBundleIdentifier = \"{}\";\n", self.ident)?;
+        write!(&mut f, "  CFBundleExecutable = \"{}\";\n", self.exe)?;
+        write!(&mut f, "  CFBundleIconFile = \"{}\";\n", self.icon)?;
+        write!(&mut f, "  CFBundleVersion = \"{}\";\n", self.version)?;
+
+        // HiDPI fields
+        if self.hidpi {
+            write!(&mut f, "  NSPrincipalClass = \"NSApplication\";\n")?;
+            write!(&mut f, "  NSHighResolutionCapable = True;\n")?;
+        }
+
+        // User-supplied fields
+        for &(ref key, ref val) in &self.keys {
+            if !FORBIDDEN_PLIST.contains(&key.as_str()) {
+                write!(&mut f, "  {} = {};\n", key, val)?;
+            }
+        }
+
+        // Default fields (if user didn't override)
+        let keys: Vec<&str> = self.keys.iter().map(|x| {x.0.as_ref()}).collect();
+        for &(ref key, ref val) in DEFAULT_PLIST {
+            if !keys.contains(key) {
+                write!(&mut f, "  {} = {};\n", key, val)?;
+            }
+        }
+
+        // Write raw plist fields
+        for raw in &self.plist_raw_strings {
+            write!(&mut f, "{}\n", raw)?;
+        }
+
+        write!(&mut f, "}}\n")?;
+
+        // Launch newly created bundle
+        info!("Launching: {}", bundle_dir.to_str().unwrap());
+        std::process::Command::new(dst_exe).spawn()?.wait()?;
+        info!("Child process exited.");
+        std::process::exit(0);
     }
 }
 
